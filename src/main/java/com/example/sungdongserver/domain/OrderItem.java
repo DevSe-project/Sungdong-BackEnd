@@ -5,6 +5,15 @@ import javax.persistence.*;
 @Entity
 @Table(name = "order_item", schema = "sungdong", uniqueConstraints = {@UniqueConstraint(columnNames = "order_item_id")})
 public class OrderItem {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="item_id")
+    private Item item;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="user_id")
+    private User user;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_item_id", unique = true, nullable = false)

@@ -6,9 +6,14 @@ import javax.persistence.*;
 @Entity
 @Table(name = "item_img", schema = "sungdong", uniqueConstraints = {@UniqueConstraint(columnNames = "item_img_id")})
 public class ItemImg {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id")
+    private Item item;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "item_id", unique = true, nullable = false)
+    @Column(name = "item_img_id", unique = true, nullable = false)
     private Long itemImgId;
 
     @Column(name = "img_name", unique = true, nullable = false)
