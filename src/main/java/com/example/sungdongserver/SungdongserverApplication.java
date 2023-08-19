@@ -9,5 +9,4 @@ public class SungdongserverApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SungdongserverApplication.class, args);
 	}
-
 }
