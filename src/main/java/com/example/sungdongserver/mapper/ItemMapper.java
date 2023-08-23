@@ -16,4 +16,8 @@ public class ItemMapper {
         itemDTO.setItemImgUrl(item.getItemImgUrl());
         return itemDTO;
     }
+
+    public static List<ItemDTO> convertToDtoList(List<Item> albums) {
+        return albums.stream().map(ItemMapper::convertToDto).collect(Collectors.toList());
+    }
 }

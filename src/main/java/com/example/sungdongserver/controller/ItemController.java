@@ -21,8 +21,14 @@ public class ItemController {
     @Autowired
     ItemService itemService;
 
+    @RequestMapping(value="", method = RequestMethod.GET)
+    public ResponseEntity<List<ItemDTO>> getAlbumAll() {
+        List<ItemDTO> itemDtos = itemService.getItemAll();
+        return new ResponseEntity<>(itemDtos, HttpStatus.OK);
+    }
+
     @RequestMapping(value = "/{itemId}", method = RequestMethod.GET)
-    public ResponseEntity<ItemDTO> getItem(@PathVariable("itemId") final long itemId){
+    public ResponseEntity<ItemDTO> getItem(@PathVariable("itemId") final long itemId) {
         ItemDTO item = itemService.getItem(itemId);
         return new ResponseEntity<>(item, HttpStatus.OK);
     }

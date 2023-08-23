@@ -40,4 +40,31 @@ class ItemServiceTest {
         assertEquals(item.getItemPrice(), resItem.getItemPrice());
         assertEquals(item.getItemImgUrl(), resItem.getItemImgUrl());
     }
+
+    @Test
+    void getItemAll() throws InterruptedException {
+        Item item1 = new Item();
+        Item item2 = new Item();
+
+        item1.setItemId(1L);
+        item1.setItemName("노가다 장갑");
+        item1.setItemPrice(10000);
+        item1.setItemContent("이것은 노가다 장갑입니다.");
+        item1.setItemImgUrl("/img/groves.jpg");
+
+        item2.setItemId(2L);
+        item2.setItemName("안전화");
+        item2.setItemPrice(30000);
+        item2.setItemContent("엄청 안전한 안전화 입니다.");
+        item2.setItemImgUrl("/img/shoes.jpg");
+
+        itemRepository.save(item1);
+        TimeUnit.SECONDS.sleep(1); //시간차를 벌리기위해 두번째 앨범 생성 1초 딜레이
+        itemRepository.save(item2);
+
+        List<Item> resDate = itemRepository.findAll();
+        assertEquals("노가다 장갑", resDate.get(0).getItemName());
+        assertEquals("안전화", resDate.get(1).getItemName());
+        assertEquals(2, resDate.size());
+    }
 }

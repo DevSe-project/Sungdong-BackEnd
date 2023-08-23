@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,5 +24,13 @@ public class ItemService {
         } else {
             throw new EntityNotFoundException(String.format("상품 아이디 %d로 조회되지 않았습니다", itemId));
         }
+    }
+
+    public List<ItemDTO> getItemAll(){
+        List<Item> items;
+        items = itemRepository.findAll();
+        List<ItemDTO> albumDtos = ItemMapper.convertToDtoList(items);
+
+        return albumDtos;
     }
 }
