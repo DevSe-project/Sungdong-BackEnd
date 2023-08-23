@@ -18,7 +18,7 @@ public class ItemService {
     public ItemDTO getItem(Long itemId){
         Optional<Item> res = itemRepository.findById(itemId);
         if (res.isPresent()){
-            ItemDTO itemDTO = ItemMapper.convertToDo(res.get());
+            ItemDTO itemDTO = ItemMapper.convertToDto(res.get());
             return itemDTO;
         } else {
             throw new EntityNotFoundException(String.format("상품 아이디 %d로 조회되지 않았습니다", itemId));

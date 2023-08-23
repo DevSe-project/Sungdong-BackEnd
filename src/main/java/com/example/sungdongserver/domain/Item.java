@@ -1,6 +1,7 @@
 package com.example.sungdongserver.domain;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "item", schema = "sungdong", uniqueConstraints = {@UniqueConstraint(columnNames = "item_id")})
@@ -18,6 +19,9 @@ public class Item {
 
     @Column(name = "item_price", unique = false, nullable = false)
     private int itemPrice;
+
+    @Column(name = "item_img_url", unique = true, nullable = false)
+    private String itemImgUrl;
 
     public Item(){};
 
@@ -51,5 +55,13 @@ public class Item {
 
     public void setItemPrice(int itemPrice) {
         this.itemPrice = itemPrice;
+    }
+
+    public String getItemImgUrl() {
+        return itemImgUrl;
+    }
+
+    public void setItemImgUrl(String itemImgUrl) {
+        this.itemImgUrl = itemImgUrl;
     }
 }

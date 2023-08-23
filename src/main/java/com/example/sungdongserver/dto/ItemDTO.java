@@ -1,10 +1,14 @@
 package com.example.sungdongserver.dto;
 
+import com.example.sungdongserver.domain.ItemImg;
+
 public class ItemDTO {
     Long itemId;
     String itemName;
     String itemContent;
     int itemPrice;
+
+    String itemImgUrl;
 
     public Long getItemId() {
         return itemId;
@@ -36,5 +40,13 @@ public class ItemDTO {
 
     public void setItemPrice(int itemPrice) {
         this.itemPrice = itemPrice;
+    }
+
+    public String getItemImgUrl() {
+        return itemImgUrl;
+    }
+
+    public void setItemImgUrl(String itemImgUrl) {
+        this.itemImgUrl = itemImgUrl;
     }
 }
