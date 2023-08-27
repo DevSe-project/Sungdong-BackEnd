@@ -41,6 +41,7 @@ public class ItemController {
     //상품 삭제
     @RequestMapping(value = "/admin/item/delete/{itemId}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteItem(@PathVariable("itemId") final long itemId){
+        itemService.deleteItem(itemId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
