@@ -33,4 +33,12 @@ public class ItemService {
 
         return albumDtos;
     }
+
+//    public ItemDTO newItem(){
+//
+//    }
+
+    public void deleteItem(Long itemId){
+        itemRepository.deleteById(itemId);
+    }
 }

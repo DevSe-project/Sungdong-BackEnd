@@ -67,4 +67,23 @@ class ItemServiceTest {
         assertEquals("안전화", resDate.get(1).getItemName());
         assertEquals(2, resDate.size());
     }
+
+    @Test
+    void deleteItem() {
+        Item item = new Item();
+        item.setItemId(1L);
+        item.setItemContent("이것은 노가다 장갑입니다.");
+        item.setItemName("노가다 장갑");
+        item.setItemPrice(10000);
+        item.setItemImgUrl("/img/groves.jpg");
+
+        Item savedItem = itemRepository.save(item);
+        itemService.deleteItem(savedItem.getItemId());
+
+        ItemDTO resItem = itemService.getItem(savedItem.getItemId());
+        assertEquals(item.getItemContent(), resItem.getItemContent());
+        assertEquals(item.getItemName(), resItem.getItemName());
+        assertEquals(item.getItemPrice(), resItem.getItemPrice());
+        assertEquals(item.getItemImgUrl(), resItem.getItemImgUrl());
+    }
 }
