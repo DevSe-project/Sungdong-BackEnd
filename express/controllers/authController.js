@@ -1,0 +1,42 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const users = [
+    {
+        id: 1,
+        userId: "ptk57581",
+        email: "ptk725739@gmail.com"
+    }
+];
+const jwtSecret = 'sung_dong';
+const authController = {
+    login: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { userId, email } = req.body;
+        const user = users.find((u) => u.userId === userId);
+        if (!user) {
+            return res.status(401).json({ msg: "Invalid id" });
+        }
+        const emailMatch = email === user.email;
+        if (!emailMatch) {
+            return res.status(401).json({ msg: "Invalid email" });
+        }
+        const token = jsonwebtoken_1.default.sign({
+            id: user.id,
+            userId: user.userId
+        }, jwtSecret, { expiresIn: '1h' });
+        return res.json({ token });
+    })
+};
+exports.default = authController;
