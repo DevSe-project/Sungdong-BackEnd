@@ -13,9 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const uuid_1 = require("uuid");
 const users = [
     {
-        id: 1,
+        id: "AAA",
         userId: "ptk57581",
         email: "ptk725739@gmail.com"
     }
@@ -37,6 +38,18 @@ const authController = {
             userId: user.userId
         }, jwtSecret, { expiresIn: '1h' });
         return res.json({ token });
+    }),
+    register: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { reqId, reqEmail } = req.body;
+        const uid = (0, uuid_1.v4)();
+        console.log(uid);
+        const user = {
+            id: uid,
+            userId: reqId,
+            email: reqEmail
+        };
+        users.push(user);
+        return res.status(200).json({ msg: "Register!" });
     })
 };
 exports.default = authController;
