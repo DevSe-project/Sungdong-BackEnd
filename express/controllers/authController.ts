@@ -48,6 +48,19 @@ const authController = {
         }    
         users.push(user);
         return res.status(200).json({msg : "Register!"})
+    },
+    user : async (req : Request, res : Response) => {        
+        const token = req.header('Authorization');
+        if (!token) {
+            return res.status(401).json({msg : "token null"})
+        }
+
+        jwt.verify(token, jwtSecret, (err, user) => {
+            if (err) {
+                return res.status(403).json({msg : "Invalid Token"})
+            }
+            return res.status(200).json({user : user})
+        })
     }
 }
 

@@ -16,7 +16,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const uuid_1 = require("uuid");
 const users = [
     {
-        id: "AAA",
+        id: "f869c33a-83e1-47c6-a0e5-2947f8992c4f",
         userId: "ptk57581",
         email: "ptk725739@gmail.com"
     }
@@ -42,7 +42,10 @@ const authController = {
     register: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { reqId, reqEmail } = req.body;
         const uid = (0, uuid_1.v4)();
-        console.log(uid);
+        const isFindUser = users.find((user) => { user.userId === reqId; });
+        if (isFindUser) {
+            return res.status(400).json({ msg: " 이미 존재하는 유저 입니다." });
+        }
         const user = {
             id: uid,
             userId: reqId,
@@ -50,6 +53,18 @@ const authController = {
         };
         users.push(user);
         return res.status(200).json({ msg: "Register!" });
+    }),
+    user: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const token = req.header('Authorization');
+        if (!token) {
+            return res.status(401).json({ msg: "token null" });
+        }
+        jsonwebtoken_1.default.verify(token, jwtSecret, (err, user) => {
+            if (err) {
+                return res.status(403).json({ msg: "Invalid Token" });
+            }
+            return res.status(200).json({ user: user });
+        });
     })
 };
 exports.default = authController;

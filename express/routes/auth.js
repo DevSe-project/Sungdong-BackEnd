@@ -8,4 +8,5 @@ const authController_1 = __importDefault(require("../controllers/authController"
 const authRouter = express_1.default.Router();
 authRouter.post("/login", authController_1.default.login);
 authRouter.post("/register", authController_1.default.register);
+authRouter.get("/user", authController_1.default.user);
 exports.default = authRouter;
