@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const uuid_1 = require("uuid");
+import { v4 } from "uuid";
 const users = [
     {
         id: "f869c33a-83e1-47c6-a0e5-2947f8992c4f",
@@ -41,7 +41,7 @@ const authController = {
     }),
     register: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { reqId, reqEmail } = req.body;
-        const uid = (0, uuid_1.v4)();
+        const uid = (0, v4)();
         const isFindUser = users.find((user) => { user.userId === reqId; });
         if (isFindUser) {
             return res.status(400).json({ msg: " 이미 존재하는 유저 입니다." });
@@ -67,4 +67,5 @@ const authController = {
         });
     })
 };
-exports.default = authController;
+const _default = authController;
+export { _default as default };

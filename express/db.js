@@ -23,7 +23,8 @@ const closeConnection = () => {
         console.log("데이터베이스 커넥션 close");
     });
 };
-exports.default = {
+const _default = {
     getConnection,
     closeConnection
 };
+export { _default as default };
