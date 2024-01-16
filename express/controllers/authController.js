@@ -53,11 +53,14 @@ const authController = {
         };
 
         const user = new User({
-            email: req.body.email,
-            name: req.body.name,
+            userType_id: req.body.userType_id,
             userId: req.body.userId,
             userPassword: req.body.userPassword,
         });
+        const user_type = new User({
+            userType_id: req.body.userType_id,
+            userType_name: req.body.userType_name,
+        })
 
         // 데이터베이스에 저장
         User.create(user, (err, data) =>{
@@ -68,6 +71,16 @@ const authController = {
                 });
             } else {
             res.send({message: '성공적으로 회원가입이 완료되었습니다.', success: true});
+            }
+        })
+        User.typeCreate(user_type, (err, data) =>{
+            if(err){
+                res.status(500).send({
+                    message:
+                    err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다."
+                });
+            } else {
+            res.send({message: '성공적으로 작성이 완료되었습니다.', success: true});
             }
         })
         return res.status(200).json({ msg: "Register!" });

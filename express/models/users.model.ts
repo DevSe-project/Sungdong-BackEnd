@@ -3,7 +3,11 @@ const { query } = require('../db.js');
 // 생성자 
 
 class User {
-    constructor(user) {
+    userType_id: number;
+    userId: any;
+    userPassword: any;
+
+    constructor(user: { userType_id: number; userId: any; userPassword: any; }) {
         this.userType_id = user.userType_id;
 
         this.userId = user.userId;
@@ -12,8 +16,8 @@ class User {
 
     }
     // user 튜플 추가 
-    static create(newUser, result) {
-        query("INSERT INTO users SET ?", newUser, (err, res) => {
+    static create(newUser: any, result: (arg0: null, arg1: null) => void) {
+        query("INSERT INTO users SET ?", newUser, (err: null, res: { insertId: any; }) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -24,21 +28,21 @@ class User {
         });
     }
     
-    static typeCreate(userType, result) {
-        query("INSERT INTO users_type SET ?", userType, (err, res) => {
+    static typeCreate(userType: any, result: (arg0: null, arg1: null) => void) {
+        query("INSERT INTO users_type SET ?", userType, (err: null, res: { insertId: any; }) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
                 return;
             }
-            console.log("새 회원이 생성되었습니다: ", { id: res.insertId, ...newUser });
-            result(null, { id: res.insertId, ...newUser });
+            console.log("새 회원이 생성되었습니다: ", { id: res.insertId, ...userType });
+            result(null, { id: res.insertId, ...userType });
         });
     }
 
     // user 생성 id로 조회
-    static findByID(userID, result) {
-        query('SELECT * FROM users WHERE id = ?', userID, (err, res) => {
+    static findByID(userID: any, result: (arg0: { kind: string; } | null, arg1: null) => void) {
+        query('SELECT * FROM users WHERE id = ?', userID, (err: { kind: string; } | null, res: string | any[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -55,8 +59,8 @@ class User {
         });
     }
     // user 전체 조회
-    static getAll(result) {
-        query('SELECT * FROM users', (err, res) => {
+    static getAll(result: (arg0: null, arg1: null) => void) {
+        query('SELECT * FROM users', (err: null, res: null) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -67,9 +71,9 @@ class User {
         });
     }
     // user id로 수정
-    static updateByID(id, user, result) {
+    static updateByID(id: any, user: { email: any; name: any; }, result: (arg0: { kind: string; } | null, arg1: any) => void) {
         query('UPDATE users SET email = ?, name = ? WHERE id = ?',
-            [user.email, user.name, id], (err, res) => {
+            [user.email, user.name, id], (err: { kind: string; } | null, res: { affectedRows: number; }) => {
                 if (err) {
                     console.log("에러 발생: ", err);
                     result(err, null);
@@ -85,8 +89,8 @@ class User {
             });
     }
     // user id로 삭제
-    static remove(id, result) {
-        query('DELETE FROM users WHERE id = ?', id, (err, res) => {
+    static remove(id: any, result: (arg0: { kind: string; } | null, arg1: any) => void) {
+        query('DELETE FROM users WHERE id = ?', id, (err: { kind: string; } | null, res: { affectedRows: number; } | any) => {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
@@ -102,8 +106,8 @@ class User {
         });
     }
     // user 전체 삭제
-    static removeAll(result) {
-        query('DELETE FROM users', (err, res) => {
+    static removeAll(result: (arg0: { kind: string; } | null, arg1: any) => void) {
+        query('DELETE FROM users', (err: any, res: { affectedRows: number; }) => {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
@@ -119,8 +123,8 @@ class User {
     }
     /* -=-=-=-= 회원가입 =-=-=-=- */
     // user 생성 UserID로 조회
-    static findByUserID(userID, result) {
-        query('SELECT * FROM users WHERE userId = ?', userID, (err, res) => {
+    static findByUserID(userID: any, result: (arg0: { kind: string; } | null, arg1: null) => void) {
+        query('SELECT * FROM users WHERE userId = ?', userID, (err: any, res: string | any[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -136,8 +140,8 @@ class User {
         });
     }
     /* -=-=-=-= 로그인 =-=-=-=- */
-    static login(user, result) {
-        query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err, res) => {
+    static login(user: { userId: any; userPassword: any; }, result: (arg0: { kind: string; } | null, arg1: null) => void) {
+        query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: any, res: string | any[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
