@@ -13,45 +13,63 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-import { v4 } from "uuid";
-const users = [
-    {
-        id: "f869c33a-83e1-47c6-a0e5-2947f8992c4f",
-        userId: "ptk57581",
-        email: "ptk725739@gmail.com"
-    }
-];
+const uuid_1 = require("uuid");
+const User = require("../models/users.model.js");
+
 const jwtSecret = 'sung_dong';
 const authController = {
     login: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { userId, email } = req.body;
-        const user = users.find((u) => u.userId === userId);
-        if (!user) {
-            return res.status(401).json({ msg: "Invalid id" });
+        const loadUser = req.body;
+        User.login(loadUser, (err, data) => {
+            if (err) {
+                if (err.kind === "not_found") {
+                    res.json({ success: false, message: "아이디나 패스워드를 다시 확인해주세요!"});
+                } else {
+                    console.error(err);
+                    res.status(500).json({ success: false, message: "서버 오류 발생" });
+                }
         }
-        const emailMatch = email === user.email;
-        if (!emailMatch) {
-            return res.status(401).json({ msg: "Invalid email" });
-        }
-        const token = jsonwebtoken_1.default.sign({
-            id: user.id,
-            userId: user.userId
-        }, jwtSecret, { expiresIn: '1h' });
-        return res.json({ token });
+        else {
+            if (data) {
+                req.session.user = data;
+                res.json({ success: true, message: "로그인 되었습니다."});
+                }
+                else {
+                res.json({ success: false, message: "아이디 및 비밀번호를 확인해주세요!"})
+                }
+            }
+    })
+    const token = jsonwebtoken_1.default.sign({
+        id: loadUser.id,
+        userId: loadUser.userId
+    }, jwtSecret, { expiresIn: '1h' });
+    return res.json({ token });
     }),
     register: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { reqId, reqEmail } = req.body;
-        const uid = (0, v4)();
-        const isFindUser = users.find((user) => { user.userId === reqId; });
-        if (isFindUser) {
-            return res.status(400).json({ msg: " 이미 존재하는 유저 입니다." });
-        }
-        const user = {
-            id: uid,
-            userId: reqId,
-            email: reqEmail
+        if(!req.body){
+            res.status(400).send({
+                message: "내용을 채워주세요!"
+            });
         };
-        users.push(user);
+
+        const user = new User({
+            email: req.body.email,
+            name: req.body.name,
+            userId: req.body.userId,
+            userPassword: req.body.userPassword,
+        });
+
+        // 데이터베이스에 저장
+        User.create(user, (err, data) =>{
+            if(err){
+                res.status(500).send({
+                    message:
+                    err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다."
+                });
+            } else {
+            res.send({message: '성공적으로 회원가입이 완료되었습니다.', success: true});
+            }
+        })
         return res.status(200).json({ msg: "Register!" });
     }),
     user: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -66,6 +84,6 @@ const authController = {
             return res.status(200).json({ user: user });
         });
     })
-};
+}
 const _default = authController;
-export { _default as default };
+module.exports = _default;
