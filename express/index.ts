@@ -2,12 +2,24 @@ import express, { Express, Request, Response } from "express"
 import authRouter from "./routes/auth";
 import cors from 'cors'
 import db from './db'
+import cookieParser from 'cookie-parser';
 const app : Express = express()
 const PORT = 5050;
 
+app.use(cookieParser());
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: 'https://localhost:3000', // 클라이언트 도메인
+    credentials: true, // 쿠키 전달을 허용
+    }))
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', 'https://localhost:3000');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
 
+    next();
+});
 
 app.get("/", (req : Request, res : Response)=>{
     const connection = db.getConnection()

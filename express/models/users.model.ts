@@ -160,6 +160,38 @@ class User {
             result(err, {});
         });
     }
+    // static token(token: any, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
+    //     connection.query('INSERT INTO tokens (users_id, token, expires_at) VALUES (?, ?, ?)', [token[0], token[1], token[2] ], (err: QueryError | { kind: string; } | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+    //         if (err) {
+    //             console.log("error: ", err);
+    //             result(err, null);
+    //             return;
+    //         }
+    //         if (res.length == 0) {
+    //             // id 결과가 없을 시 
+    //             result({ kind: "not_found" }, null);
+    //             return;
+    //         }
+    //         console.log("해당 토큰이 정상적으로 작성되었습니다: ", token);
+    //         result(null, res);
+    //     })
+    // }
+    // static logout(token: any, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
+    //     connection.query('DELETE FROM tokens WHERE token = ?', token, (err: QueryError | { kind: string; } | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+    //         if (err) {
+    //             console.log("error: ", err);
+    //             result(err, null);
+    //             return;
+    //         }
+    //         if (res.length == 0) {
+    //             // id 결과가 없을 시 
+    //             result({ kind: "not_found" }, null);
+    //             return;
+    //         }
+    //         console.log("해당 토큰이 정상적으로 삭제되었습니다: ", token);
+    //         result(null, res);
+    //     })
+    // }
 }
 
 export = User;
