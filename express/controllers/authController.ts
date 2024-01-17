@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express"
 import jwt from 'jsonwebtoken'
 import { v4 } from 'uuid'
 import User from "../models/users.model";
-import { QueryError } from "mysql2";
+import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 
 const jwtSecret = 'sung_dong'
 
@@ -10,26 +10,26 @@ const authController = {
     login : async (req : Request, res : Response) => {
         const loadUser = req.body
 
-        User.login(loadUser, (err: QueryError | { kind: string; } | null, data: any) => {
+        User.login(loadUser, (err: QueryError | { kind: string; } | null, data: {users_id: number, userId: any, userPassword: any, userType_id: number} | null) => {
         if (err) {
             console.error(err);
             res.status(500).json({ success: false, message: "서버 오류 발생" });
         }
         else {
-            if (data) {
+            if (data !== null) {
                 const token = jwt.sign({
-                    userType_id: loadUser.userType_id,
-                    userId: loadUser.userId
+                    userType_id: data.userType_id,
+                    userId: data.userId
                 }, jwtSecret, { expiresIn: '1h' });
                 req.user = data;
-                res.json({ success: true, message: "로그인 되었습니다.", token});
-                }
-                else {
-                res.json({ success: false, message: "아이디 및 비밀번호를 확인해주세요!"})
-                }
+                res.send({ success: true, message: "로그인 되었습니다.", token});
             }
-        })
-    },
+            else {
+            res.send({ success: false, message: "아이디 및 비밀번호를 확인해주세요!"})
+            }
+        }
+    })
+},
     register : async (req : Request, res : Response) => {
         if(!req.body){
             res.status(400).send({

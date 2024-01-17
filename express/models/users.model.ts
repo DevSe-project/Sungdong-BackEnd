@@ -148,7 +148,7 @@ class User {
         connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
-                result(err, null);
+                result(err, {});
                 return;
             }
             if (res.length) {
@@ -157,7 +157,7 @@ class User {
                 return;
             }
             // 결과가 없을 시 
-            result(err, null);
+            result(err, {});
         });
     }
 }
