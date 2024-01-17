@@ -1,7 +1,7 @@
-import mysql from 'mysql2'
+import mysql, {Connection} from 'mysql2'
 import config from './config/database'
 
-const connection = mysql.createConnection(config);
+const connection : Connection = mysql.createConnection(config);
 connection.connect((err) => {
     if (err) {
         console.error(err)
@@ -10,8 +10,8 @@ connection.connect((err) => {
     }
     console.log("데이터베이스 커넥팅 완료!")
 })
-const getConnection = () => connection
-const closeConnection = () => {
+const getConnection = () : Connection => connection;
+const closeConnection = (): void => {
     connection.end((err) => {
         if (err) {
             return console.error("데이터베이스 커넥션 close error")

@@ -2,10 +2,10 @@
   "name": "express",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
+    "start": "nodemon index.ts",
     "build": "npx tsc",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon index.js\""
   },
@@ -26,5 +26,8 @@
     "nodemon": "^3.0.2",
     "promise": "^8.3.0",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
   }
 }

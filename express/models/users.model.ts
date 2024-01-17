@@ -1,4 +1,8 @@
-const { query } = require('../db.js');
+import { QueryError, OkPacket, RowDataPacket, ResultSetHeader, FieldPacket } from 'mysql2';
+import db from '../db';
+
+// getConnection 함수로 connection 객체 얻기
+const connection = db.getConnection();
 
 // 생성자 
 
@@ -16,8 +20,8 @@ class User {
 
     }
     // user 튜플 추가 
-    static create(newUser: any, result: (arg0: null, arg1: null) => void) {
-        query("INSERT INTO users SET ?", newUser, (err: null, res: { insertId: any; }) => {
+    static create(newUser: any, result: (arg0: any, arg1: any) => void) {
+        connection.query("INSERT INTO users SET ?", newUser, (err: QueryError | null, res: OkPacket) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -28,21 +32,21 @@ class User {
         });
     }
     
-    static typeCreate(userType: any, result: (arg0: null, arg1: null) => void) {
-        query("INSERT INTO users_type SET ?", userType, (err: null, res: { insertId: any; }) => {
+    static typeCreate(userType: any, result: (arg0: QueryError | null, arg1: null) => void) {
+        connection.query("INSERT INTO users_type SET ?", userType, (err: QueryError | null) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
                 return;
             }
-            console.log("새 회원이 생성되었습니다: ", { id: res.insertId, ...userType });
-            result(null, { id: res.insertId, ...userType });
+            console.log("새 회원이 생성되었습니다: ", { ...userType });
+            result(null, { ...userType });
         });
     }
 
     // user 생성 id로 조회
-    static findByID(userID: any, result: (arg0: { kind: string; } | null, arg1: null) => void) {
-        query('SELECT * FROM users WHERE id = ?', userID, (err: { kind: string; } | null, res: string | any[]) => {
+    static findByID(userID: any, result: (arg0: { kind: string; } | QueryError | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+        connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -60,7 +64,7 @@ class User {
     }
     // user 전체 조회
     static getAll(result: (arg0: null, arg1: null) => void) {
-        query('SELECT * FROM users', (err: null, res: null) => {
+        connection.query('SELECT * FROM users', (err: null, res: null) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -71,15 +75,15 @@ class User {
         });
     }
     // user id로 수정
-    static updateByID(id: any, user: { email: any; name: any; }, result: (arg0: { kind: string; } | null, arg1: any) => void) {
-        query('UPDATE users SET email = ?, name = ? WHERE id = ?',
-            [user.email, user.name, id], (err: { kind: string; } | null, res: { affectedRows: number; }) => {
+    static updateByID(id: any, user: { email: any; name: any; }, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
+        connection.query('UPDATE users SET email = ?, name = ? WHERE userId = ?',
+            [user.email, user.name, id], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
                 if (err) {
                     console.log("에러 발생: ", err);
                     result(err, null);
                     return;
                 }
-                if (res.affectedRows == 0) {
+                if (res.length == 0) {
                     // id 결과가 없을 시 
                     result({ kind: "not_found" }, null);
                     return;
@@ -89,14 +93,14 @@ class User {
             });
     }
     // user id로 삭제
-    static remove(id: any, result: (arg0: { kind: string; } | null, arg1: any) => void) {
-        query('DELETE FROM users WHERE id = ?', id, (err: { kind: string; } | null, res: { affectedRows: number; } | any) => {
+    static remove(id: any, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
+        connection.query('DELETE FROM users WHERE id = ?', id, (err: QueryError | { kind: string; } | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
                 return;
             }
-            if (res.affectedRows == 0) {
+            if (res.length == 0) {
                 // id 결과가 없을 시 
                 result({ kind: "not_found" }, null);
                 return;
@@ -107,7 +111,7 @@ class User {
     }
     // user 전체 삭제
     static removeAll(result: (arg0: { kind: string; } | null, arg1: any) => void) {
-        query('DELETE FROM users', (err: any, res: { affectedRows: number; }) => {
+        connection.query('DELETE FROM users', (err: any, res: { affectedRows: number; }) => {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
@@ -121,15 +125,15 @@ class User {
             result(null, res);
         });
     }
-    /* -=-=-=-= 회원가입 =-=-=-=- */
     // user 생성 UserID로 조회
-    static findByUserID(userID: any, result: (arg0: { kind: string; } | null, arg1: null) => void) {
-        query('SELECT * FROM users WHERE userId = ?', userID, (err: any, res: string | any[]) => {
+    static findByUserID(userID: any, result: (arg0: QueryError | { kind: string; } | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+        connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                return;
             } else {
-                if (res && res.length > 0) {
+                if (res.length > 0) {
                     console.log("중복된 아이디: ", res[0]);
                     result(null, res[0]); // 중복된 사용자 정보 반환
                 } else {
@@ -140,8 +144,8 @@ class User {
         });
     }
     /* -=-=-=-= 로그인 =-=-=-=- */
-    static login(user: { userId: any; userPassword: any; }, result: (arg0: { kind: string; } | null, arg1: null) => void) {
-        query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: any, res: string | any[]) => {
+    static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | {kind: string;}| null, arg1: any) => void) {
+        connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -153,9 +157,9 @@ class User {
                 return;
             }
             // 결과가 없을 시 
-            result({ kind: "not_found" }, null);
+            result(err, null);
         });
     }
 }
 
-module.exports = User;
+export = User;
