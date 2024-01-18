@@ -4,44 +4,35 @@ import db from '../db';
 // getConnection 함수로 connection 객체 얻기
 const connection = db.getConnection();
 
-// 생성자 
-
 class User {
-    userType_id: number;
-    userId: any;
-    userPassword: any;
 
-    constructor(user: { userType_id: number; userId: any; userPassword: any; }) {
-        this.userType_id = user.userType_id;
-
-        this.userId = user.userId;
-
-        this.userPassword = user.userPassword;
-
-    }
     // user 튜플 추가 
-    static create(newUser: any, result: (arg0: any, arg1: any) => void) {
-        connection.query("INSERT INTO users SET ?", newUser, (err: QueryError | null, res: OkPacket) => {
+    static create(newUser:any, result: (arg0: any, arg1: any) => void) {
+        const queries = [
+            "INSERT INTO users SET ?",
+            "INSERT INTO users_info SET ?",
+            "INSERT INTO users_corInfo SET ?",
+            "INSERT INTO users_address SET ?",
+        ];
+        const results : any = [];
+        for (let i = 0; i < queries.length; i++) {
+        connection.query(queries[i], newUser[`users${i + 1}`], (err: QueryError | null, res:RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
             if (err) {
-                console.log("에러 발생: ", err);
-                result(err, null);
-                return;
+            console.log("에러 발생: ", err);
+            result(err, null);
+            return;
             }
-            console.log("새 회원이 생성되었습니다: ", { id: res.insertId, ...newUser });
-            result(null, { id: res.insertId, ...newUser });
-        });
-    }
-    
-    static typeCreate(userType: any, result: (arg0: QueryError | null, arg1: null) => void) {
-        connection.query("INSERT INTO users_type SET ?", userType, (err: QueryError | null) => {
-            if (err) {
-                console.log("에러 발생: ", err);
-                result(err, null);
-                return;
+            else {
+                results.push(res);
+                if (results.length === queries.length) {
+                    // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                    console.log("새 회원이 생성되었습니다: ", results);
+                    result(null, results);
+                    return;
+                }
             }
-            console.log("새 회원이 생성되었습니다: ", { ...userType });
-            result(null, { ...userType });
         });
+        }
     }
 
     // user 생성 id로 조회

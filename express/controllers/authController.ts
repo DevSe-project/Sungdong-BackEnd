@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express"
 import jwt from 'jsonwebtoken'
-import { v4 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 import User from "../models/users.model";
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 
@@ -44,25 +44,56 @@ const authController = {
                 message: "내용을 채워주세요!"
             });
         };
+        const commonUserId = uuidv4();
 
-        const user = new User({ //users 테이블에 생성할 데이터
-            userType_id: req.body.userType_id,
-            userId: req.body.userId,
-            userPassword: req.body.userPassword,
-        });
+        const newUser = {
+            users1: {
+                users_id: commonUserId,
+                userType_id: req.body.userType_id,
+                userId: req.body.userId,
+                userPassword: req.body.userPassword,
+            },
+            users2: {
+                users_id: commonUserId,
+                userType_id: req.body.userType_id,
+                email: req.body.email,
+                emailService: req.body.emailService,
+                name: req.body.name,
+                tel: req.body.tel,
+                smsService: req.body.smsService,
+                hasCMS: req.body.hasCMS,
+            },
+            users3: {
+                users_id: commonUserId,
+                userType_id: req.body.userType_id,
+                cor_ceoName: req.body.cor_ceoName,
+                cor_corName: req.body.cor_corName,
+                cor_sector: req.body.cor_sector,
+                cor_category: req.body.cor_category,
+                cor_num: req.body.cor_num,
+                cor_fax: req.body.cor_fax,
+                cor_tel: req.body.cor_tel
+            },
+            users4: {
+                users_id: commonUserId,
+                userType_id: req.body.userType_id,
+                zonecode: req.body.zonecode,
+                roadAddress: req.body.roadAddress,
+                bname: req.body.bname,
+                buildingName: req.body.buildingName,
+                jibunAddress: req.body.jibunAddress,
+                addressDetail: req.body.addressDetail
+            },
+        };
 
         // 데이터베이스에 저장
-        User.create(user, (err: { message: any; }, data: any) =>{
-            if(err){
-                res.status(500).send({
-                    message:
-                    err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다."
-                });
-            } else {
-            res.send({message: '성공적으로 회원가입이 완료되었습니다.', success: true});
-            }
+        User.create(newUser, (err: { message: any; }) =>{
+            if(err)
+                return res.status(500).send({ message: err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다." });
+            else
+                return res.send({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
         })
-        return res.status(200).json({ msg: "Register!" });
+        return res.status(200).json({ msg: "가입에 성공하였습니다!" });
     },
     user : async (req : Request, res : Response) => {        
         const token = req.header('Authorization');
