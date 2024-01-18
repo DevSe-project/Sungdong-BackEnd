@@ -134,6 +134,24 @@ class User {
             }
         });
     }
+    // userID 조회
+    static findUserID(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+        connection.query('SELECT a.userId FROM users a JOIN users_corInfo b ON a.users_id = b.users_id WHERE b.cor_ceoName = ? AND b.cor_num = ?', [user.cor_ceoName, user.cor_num], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+            if (err) {
+                console.log("에러 발생: ", err);
+                result(err, null);
+                return;
+            } else {
+                if (res.length > 0) {
+                    console.log("찾은 아이디: ", res[0]);
+                    result(null, res[0]); // 찾은 사용자 정보 반환
+                } else {
+                    // 결과가 없을 시
+                    result("찾을 수 없습니다.", null);
+                }
+            }
+        });
+    }
     /* -=-=-=-= 로그인 =-=-=-=- */
     static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | {kind: string;}| null, arg1: any) => void) {
         connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
