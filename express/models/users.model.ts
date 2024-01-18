@@ -54,8 +54,8 @@ class User {
         });
     }
     // user 전체 조회
-    static getAll(result: (arg0: null, arg1: null) => void) {
-        connection.query('SELECT * FROM users', (err: null, res: null) => {
+    static getAll(result: (arg0: QueryError | null, arg1: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => void) {
+        connection.query('SELECT * FROM users a JOIN users_info b ON a.users_id = b.users_id JOIN users_corInfo c ON a.users_id = c.users_id JOIN users_address d ON a.users_id = d.users_id', (err: QueryError | null, res: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);

@@ -91,9 +91,8 @@ const authController = {
             if(err)
                 return res.status(500).send({ message: err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다." });
             else
-                return res.send({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
+                return res.status(200).json({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
         })
-        return res.status(200).json({ msg: "가입에 성공하였습니다!" });
     },
     info : async (req : Request, res : Response) => {   
         const token = req.cookies.jwt_token;
@@ -162,6 +161,21 @@ const authController = {
                 return res.status(500).send({ message: err });
             } else {
                 return res.status(200).json({ message: '비밀번호를 찾았습니다.', success: true, data });
+            }
+        });
+    },
+    userAll : async (req : Request, res : Response) => {    
+        if(!req.body){
+            res.status(400).send({
+                message: "내용을 채워주세요!"
+            });
+        };
+        User.getAll((err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err });
+            } else {
+                console.log(data);
+                return res.status(200).json({ message: '모든 유저를 조회하였습니다.', success: true, data });
             }
         });
     }
