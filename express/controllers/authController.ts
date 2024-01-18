@@ -125,6 +125,24 @@ const authController = {
                 return res.status(200).json({ message: '아이디를 찾았습니다.', success: true, data });
             }
         });
+    },
+    findPw : async (req : Request, res : Response) => {    
+        if(!req.body){
+            res.status(400).send({
+                message: "내용을 채워주세요!"
+            });
+        };
+        const user = {
+            userId: req.body.userId,
+            cor_num: req.body.cor_num
+        }
+        User.findUserPw(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err });
+            } else {
+                return res.status(200).json({ message: '비밀번호를 찾았습니다.', success: true, data });
+            }
+        });
     }
 }
 
