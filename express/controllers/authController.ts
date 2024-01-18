@@ -15,7 +15,7 @@ const authController = {
             if (data !== null) {
                 const token = jwt.sign({
                 userType_id: data.userType_id,
-                userId: data.userId
+                users_id: data.users_id
                 }, jwtSecret, { expiresIn: '1h' });
         
                 req.user = data;
@@ -94,6 +94,27 @@ const authController = {
                 return res.send({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
         })
         return res.status(200).json({ msg: "가입에 성공하였습니다!" });
+    },
+    info : async (req : Request, res : Response) => {   
+        const token = req.cookies.jwt_token;
+        if (!token) {
+            return res.status(401).json({msg : "token null"})
+        }
+
+        jwt.verify(token, jwtSecret, (err: any, user: any) => {
+            if (err) {
+                return res.status(403).json({msg : "Invalid Token"})
+            }
+            else {
+                User.findAllUserInfo(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+                if (err) {
+                    return res.status(500).send({ message: err });
+                } else {
+                    return res.status(200).json({ message: '인증이 완료되었습니다.', success: true, data });
+                }
+                });
+            }
+        })
     },
     user : async (req : Request, res : Response) => {        
         const token = req.header('Authorization');

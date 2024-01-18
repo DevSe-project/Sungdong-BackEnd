@@ -9,6 +9,7 @@ authRouter.post("/findId", authController.findId);
 authRouter.post("/findPw", authController.findPw);
 authRouter.post("/logout", authController.logout);
 authRouter.post("/register", authController.register);
+authRouter.get("/info", authController.info);
 authRouter.get("/user", jwtMiddleware, authController.user);
 
 export default authRouter;
