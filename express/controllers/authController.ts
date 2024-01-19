@@ -1,8 +1,9 @@
-import { Router, Request, Response } from "express"
+import { Request, Response } from "express"
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid'
 import User from "../models/users.model";
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
+import shortid from "shortid";
 
 const jwtSecret = 'sung_dong'
 
@@ -88,12 +89,23 @@ const authController = {
 
         // 데이터베이스에 저장
         User.create(newUser, (err: { message: any; }) =>{
+            const code = req.cookies.register_code;
             if(err)
                 return res.status(500).send({ message: err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다." });
-            else
-                return res.status(200).json({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
+            else {
+                User.removeCode(code, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+                    if (err) {
+                        return res.status(500).send({ message: err });
+                    } else {
+                        res.clearCookie('register_code', {secure: true, sameSite: 'none'});
+                        return res.status(200).json({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
+                    }
+                });
+            }
         })
     },
+
+    // 마이페이지
     info : async (req : Request, res : Response) => {   
         const token = req.cookies.jwt_token;
         if (!token) {
@@ -115,6 +127,8 @@ const authController = {
             }
         })
     },
+    /*---------------------------- 토큰 검증 -------------------------------*/
+
     user : async (req : Request, res : Response) => {        
         const token = req.header('Authorization');
         if (!token) {
@@ -128,6 +142,8 @@ const authController = {
             return res.status(200).json({user : user})
         })
     },
+
+    /*---------------------------- 유저 정보 조회 관련 ------------------------------*/
     findId : async (req : Request, res : Response) => {    
         if(!req.body){
             res.status(400).send({
@@ -165,20 +181,50 @@ const authController = {
         });
     },
     userAll : async (req : Request, res : Response) => {    
-        if(!req.body){
-            res.status(400).send({
-                message: "내용을 채워주세요!"
-            });
-        };
         User.getAll((err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err });
             } else {
-                console.log(data);
                 return res.status(200).json({ message: '모든 유저를 조회하였습니다.', success: true, data });
             }
         });
-    }
+    },
+
+    /*----------------------------------코드 관련-------------------------------------*/
+    getAllCode : async (req : Request, res : Response) => {    
+        User.getAllCode((err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err });
+            } else {
+                return res.status(200).json({ message: '모든 코드를 조회하였습니다.', success: true, data: data });
+            }
+        });
+    },
+    generateCode : async (req : Request, res : Response) => {  
+        const setCode = {
+            user_code: shortid.generate()
+        }  
+        User.generateCode(setCode, (err: QueryError | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err });
+            } else {
+                return res.status(200).json({ message: '코드를 생성하였습니다.', success: true, result });
+            }
+        });
+    },
+    checkCode : async (req : Request, res : Response) => {  
+        const code = {
+            user_code: req.body.user_code
+        }
+        User.checkCode(code, (err: QueryError | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err });
+            } else {
+                res.cookie('register_code', code, {secure: true, sameSite: "none"});
+                return res.status(200).json({ message: '인증 되었습니다.', success: true, result });
+            }
+        });
+    },
 }
 
 export default authController

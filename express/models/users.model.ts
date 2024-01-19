@@ -1,4 +1,4 @@
-import { QueryError, OkPacket, RowDataPacket, ResultSetHeader, FieldPacket } from 'mysql2';
+import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket } from 'mysql2';
 import db from '../db';
 
 // getConnection 함수로 connection 객체 얻기
@@ -65,6 +65,57 @@ class User {
             result(null, res);
         });
     }
+
+    /*-----------------------------------------------------------*/
+
+    // user 코드 조회
+    static getAllCode(result: (arg0: QueryError | null, arg1: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => void) {
+        connection.query('SELECT * FROM users_code', (err: QueryError | null, res: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+            if (err) {
+                console.log("에러 발생: ", err);
+                result(err, null);
+                return;
+            }
+            console.log("생성된 모든 코드들: ", res);
+            result(null, res);
+        });
+    }
+    // 코드 생성
+    static generateCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader |  RowDataPacket[] | null) => any) {
+        connection.query('INSERT INTO users_code SET ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
+            if (err) {
+                console.log("에러 발생: ", err);
+                result(err, null);
+                return;
+            }
+            console.log("생성된 코드: ", code);
+            result(null, res[0]);
+        });
+    }
+    //코드 검사
+    static checkCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader |  RowDataPacket[] | null) => any) {
+        connection.query('SELECT user_code FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
+            if (err) {
+                console.log("에러 발생: ", err);
+                result(err, null);
+                return;
+            }
+            console.log("확인된 코드: ", code);
+            result(null, res[0]);
+        });
+    }
+    static removeCode(code: any, result: (arg0: QueryError | null, arg1: any) => void) {
+        connection.query('DELETE FROM users_code WHERE user_code = ?', code.user_code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+            if (err) {
+                console.log("error: ", err);
+                result(err, null);
+                return;
+            }
+            console.log("해당 코드가 정상적으로 삭제되었습니다: ", code);
+            result(null, res);
+        });
+    }
+    /*----------------------------------------------------------*/
     // user id로 수정
     static updateByID(id: any, user: { email: any; name: any; }, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
         connection.query('UPDATE users SET email = ?, name = ? WHERE userId = ?',
