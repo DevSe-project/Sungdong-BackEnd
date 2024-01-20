@@ -205,6 +205,20 @@ const authController = {
             }
         });
     },
+    userSort : async (req : Request, res : Response) => {    
+        const filter = {
+            first: req.body.first,
+            second: req.body.second,
+            third: req.body.third
+        }
+        User.sortedUser(filter, (err: QueryError | Error | null, data: RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err.message });
+            } else {
+                return res.status(200).json({ message: '조건에 맞게 정렬하였습니다.', success: true, data });
+            }
+        });
+    },
 
     /*----------------------------------코드 관련-------------------------------------*/
     getAllCode : async (req : Request, res : Response) => {    

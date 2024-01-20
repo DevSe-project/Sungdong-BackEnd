@@ -17,6 +17,7 @@ authRouter.get("/info", authController.info);
 /*------------------ 회원 관리--------------------*/
 authRouter.get("/userAll", authController.userAll);
 authRouter.post("/userFilter", authController.userFilter);
+authRouter.post("/userSort", authController.userSort);
 
 /*------------------ 코드 관련--------------------*/
 authRouter.get("/codeAll", authController.getAllCode);

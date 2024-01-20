@@ -86,6 +86,38 @@ class User {
             result(null, res);
         });
     }
+    // 유저 정렬 - 정렬
+    static sortedUser(user: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
+        // 사용자 입력 값으로부터 컬럼 및 정렬 방식을 동적으로 생성
+        const orderByColumns = [user.first, user.second, user.third].filter(Boolean); // 비어있는 값 제거
+        if (orderByColumns.length === 0) {
+            // 정렬할 컬럼이 없으면 에러 처리
+            const noOrderByError = new Error("정렬할 컬럼이 지정되지 않았습니다.");
+            console.error(noOrderByError.message);
+            result(noOrderByError, null);
+            return;
+        }
+
+        const orderByClause = orderByColumns.map(column => `${column}`).join(', ');
+        // SQL 쿼리 생성
+        const query = `SELECT * FROM users USER JOIN users_info INFO ON USER.users_id = INFO.users_id JOIN users_corInfo COR ON USER.users_id = COR.users_id JOIN users_address ADDR ON USER.users_id = ADDR.users_id ORDER BY ${orderByClause}`;
+
+        connection.query(query, (err: QueryError | Error | null, res: RowDataPacket[]) => {
+            if (err) {
+                console.error("에러 발생: ", err);
+                result(err, null);
+                return;
+            }
+            if(res.length === 0) {
+                const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
+                console.error(noMatchingUserError.message);
+                result(noMatchingUserError, null);
+                return;
+            }
+            console.log("정렬 된 유저: ", res);
+            result(null, res);
+        });
+    }
     
 
     /*------------------------------코드-----------------------------*/
