@@ -189,6 +189,22 @@ const authController = {
             }
         });
     },
+    userFilter : async (req : Request, res : Response) => {    
+        const filter = {
+            cor_corName: req.body.cor_corName,
+            cor_ceoName: req.body.cor_ceoName,
+            cor_num: req.body.cor_num,
+            userType_id: req.body. userType_id,
+            grade: req.body.grade
+        }
+        User.filteredUser(filter, (err: QueryError | Error | null, data: RowDataPacket[] | null) => {
+            if (err) {
+                return res.status(500).send({ message: err.message });
+            } else {
+                return res.status(200).json({ message: '조건에 일치하는 유저를 조회합니다.', success: true, data });
+            }
+        });
+    },
 
     /*----------------------------------코드 관련-------------------------------------*/
     getAllCode : async (req : Request, res : Response) => {    

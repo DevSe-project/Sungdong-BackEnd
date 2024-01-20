@@ -26,7 +26,7 @@ class User {
                 results.push(res);
                 if (results.length === queries.length) {
                     // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-                    console.log("새 회원이 생성되었습니다: ", results);
+                    console.log("새 회원이 생성되었습니다: ", ...results);
                     result(null, results);
                     return;
                 }
@@ -66,7 +66,29 @@ class User {
         });
     }
 
-    /*-----------------------------------------------------------*/
+    // 특정 user 조회 - 필터링
+    static filteredUser(user: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
+        const query = 'SELECT * FROM users USER JOIN users_info INFO ON USER.users_id = INFO.users_id JOIN users_corInfo COR ON USER.users_id = COR.users_id JOIN users_address ADDR ON USER.users_id = ADDR.users_id WHERE cor_ceoName LIKE ? AND cor_corName LIKE ? AND cor_num LIKE ? AND USER.userType_id LIKE ? AND INFO.grade LIKE ?'; 
+
+        connection.query(query, [`%${user.cor_ceoName}%`, `%${user.cor_corName}%`, `%${user.cor_num}%`, `%${user.userType_id}%`, `%${user.grade}%`], (err: QueryError | Error | null, res: RowDataPacket[]) => {
+            if (err) {
+                console.error("에러 발생: ", err);
+                result(err, null);
+                return;
+            }
+            if(res.length === 0) {
+                const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
+                console.error(noMatchingUserError.message);
+                result(noMatchingUserError, null);
+                return;
+            }
+            console.log("필터링 된 유저: ", res);
+            result(null, res);
+        });
+    }
+    
+
+    /*------------------------------코드-----------------------------*/
 
     // user 코드 조회
     static getAllCode(result: (arg0: QueryError | null, arg1: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => void) {
@@ -104,6 +126,7 @@ class User {
             result(null, res[0]);
         });
     }
+    //코드 삭제
     static removeCode(code: any, result: (arg0: QueryError | null, arg1: any) => void) {
         connection.query('DELETE FROM users_code WHERE user_code = ?', code.user_code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
@@ -167,7 +190,7 @@ class User {
             result(null, res);
         });
     }
-    // user 생성 UserID로 조회
+    // user 생성 시 UserID 중복검사
     static findByUserID(userID: any, result: (arg0: QueryError | { kind: string; } | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
         connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
@@ -185,7 +208,7 @@ class User {
             }
         });
     }
-    // userID 조회
+    // userID 찾기
     static findUserID(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
         connection.query('SELECT a.userId FROM users a JOIN users_corInfo b ON a.users_id = b.users_id WHERE b.cor_ceoName = ? AND b.cor_num = ?', [user.cor_ceoName, user.cor_num], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
@@ -203,7 +226,7 @@ class User {
             }
         });
     }
-    // userPw 조회
+    // userPw 찾기
     static findUserPw(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
         connection.query('SELECT a.userPassword FROM users a JOIN users_corInfo b ON a.users_id = b.users_id WHERE a.userId = ? AND b.cor_num = ?', [user.userId, user.cor_num], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
@@ -222,7 +245,7 @@ class User {
         });
     }
 
-    // user의 id로 user 모든 정보 조회
+    // user의 id로 user 모든 정보 조회 - 마이페이지
     static findAllUserInfo(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
         connection.query('SELECT * FROM users a JOIN users_info b ON a.users_id = b.users_id JOIN users_corInfo c ON a.users_id = c.users_id JOIN users_address d ON a.users_id = d.users_id WHERE a.userType_id = ? AND a.users_id = ?', [user.userType_id, user.users_id], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
             if (err) {
@@ -257,38 +280,6 @@ class User {
             result(err, {});
         });
     }
-    // static token(token: any, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
-    //     connection.query('INSERT INTO tokens (users_id, token, expires_at) VALUES (?, ?, ?)', [token[0], token[1], token[2] ], (err: QueryError | { kind: string; } | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
-    //         if (err) {
-    //             console.log("error: ", err);
-    //             result(err, null);
-    //             return;
-    //         }
-    //         if (res.length == 0) {
-    //             // id 결과가 없을 시 
-    //             result({ kind: "not_found" }, null);
-    //             return;
-    //         }
-    //         console.log("해당 토큰이 정상적으로 작성되었습니다: ", token);
-    //         result(null, res);
-    //     })
-    // }
-    // static logout(token: any, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
-    //     connection.query('DELETE FROM tokens WHERE token = ?', token, (err: QueryError | { kind: string; } | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
-    //         if (err) {
-    //             console.log("error: ", err);
-    //             result(err, null);
-    //             return;
-    //         }
-    //         if (res.length == 0) {
-    //             // id 결과가 없을 시 
-    //             result({ kind: "not_found" }, null);
-    //             return;
-    //         }
-    //         console.log("해당 토큰이 정상적으로 삭제되었습니다: ", token);
-    //         result(null, res);
-    //     })
-    // }
 }
 
 export = User;
