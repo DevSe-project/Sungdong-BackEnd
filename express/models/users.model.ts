@@ -98,7 +98,7 @@ class User {
             return;
         }
 
-        const orderByClause = orderByColumns.map(column => `${column}`).join(', ');
+        const orderByClause = orderByColumns.map(column => `${column} DESC`).join(', ');
         // SQL 쿼리 생성
         const query = `SELECT * FROM users USER JOIN users_info INFO ON USER.users_id = INFO.users_id JOIN users_corInfo COR ON USER.users_id = COR.users_id JOIN users_address ADDR ON USER.users_id = ADDR.users_id ORDER BY ${orderByClause}`;
 
