@@ -3,6 +3,7 @@ import authRouter from "./routes/auth";
 import cors from 'cors'
 import db from './db'
 import cookieParser from 'cookie-parser';
+import categoryRouter from "./routes/category";
 const app : Express = express()
 const PORT = 5050;
 
@@ -30,5 +31,6 @@ app.get("/", (req : Request, res : Response)=>{
 });
 
 app.use("/auth", authRouter)
+app.use("/category", categoryRouter)
 
 app.listen(PORT, ()=>{ console.log(`[SERVER] : http://localhost:${PORT} ON!`) })
