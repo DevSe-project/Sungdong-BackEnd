@@ -7,49 +7,49 @@ const connection = db.getConnection();
 class User {
 
     // user 튜플 추가 - 회원가입
-    static create(newUser:any, result: (arg0: any, arg1: any) => void) {
+    static create(newUser: any, result: (arg0: any, arg1: any) => void) {
         connection.beginTransaction((err) => {
             if (err) {
-            console.log('트랜잭션 시작 중 에러 발생: ', err);
-            result(err, null);
-            return;
+                console.log('트랜잭션 시작 중 에러 발생: ', err);
+                result(err, null);
+                return;
             }
-        
+
             const queries = [
-            "INSERT INTO users SET ?",
-            "INSERT INTO users_info SET ?",
-            "INSERT INTO users_corInfo SET ?",
-            "INSERT INTO users_address SET ?",
+                "INSERT INTO users SET ?",
+                "INSERT INTO users_info SET ?",
+                "INSERT INTO users_corInfo SET ?",
+                "INSERT INTO users_address SET ?",
             ];
-        
+
             const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-        
+
             function executeQuery(queryIndex: number) {
-            if (queryIndex < queries.length) {
-                connection.query(queries[queryIndex], newUser[`users${queryIndex + 1}`], (err, res) => {
-                if (err) {
-                    console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                    connection.rollback(() => {
-                    result(err, null);
+                if (queryIndex < queries.length) {
+                    connection.query(queries[queryIndex], newUser[`users${queryIndex + 1}`], (err, res) => {
+                        if (err) {
+                            console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                            connection.rollback(() => {
+                                result(err, null);
+                            });
+                        } else {
+                            results.push(res);
+                            executeQuery(queryIndex + 1);
+                        }
                     });
                 } else {
-                    results.push(res);
-                    executeQuery(queryIndex + 1);
-                }
-                });
-            } else {
-                connection.commit((commitErr) => {
-                if (commitErr) {
-                    console.log('커밋 중 에러 발생: ', commitErr);
-                    connection.rollback(() => {
-                    result(commitErr, null);
+                    connection.commit((commitErr) => {
+                        if (commitErr) {
+                            console.log('커밋 중 에러 발생: ', commitErr);
+                            connection.rollback(() => {
+                                result(commitErr, null);
+                            });
+                        } else {
+                            console.log('트랜잭션 성공적으로 완료: ', results);
+                            result(null, results);
+                        }
                     });
-                } else {
-                    console.log('트랜잭션 성공적으로 완료: ', results);
-                    result(null, results);
                 }
-                });
-            }
             }
             executeQuery(0);
         });
@@ -128,7 +128,7 @@ class User {
         });
     }
     // 로그인
-    static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | {kind: string;}| null, arg1: any) => void) {
+    static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
         connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
@@ -166,7 +166,15 @@ class User {
     /*----------------------------- 유저 관리 ----------------------------------*/
     // user 전체 조회
     static getAll(result: (arg0: QueryError | null, arg1: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => void) {
-        connection.query('SELECT * FROM users a JOIN users_info b ON a.users_id = b.users_id JOIN users_corInfo c ON a.users_id = c.users_id JOIN users_address d ON a.users_id = d.users_id', (err: QueryError | null, res: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+        const query = `SELECT * FROM users a 
+        JOIN users_info b 
+            ON a.users_id = b.users_id 
+        JOIN users_corInfo c 
+            ON a.users_id = c.users_id 
+        JOIN users_address d 
+            ON a.users_id = d.users_id`
+
+        connection.query(query, (err: QueryError | null, res: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -183,19 +191,19 @@ class User {
         JOIN users_info INFO ON USER.users_id = INFO.users_id 
         JOIN users_corInfo COR ON USER.users_id = COR.users_id 
         JOIN users_address ADDR ON USER.users_id = ADDR.users_id 
-        WHERE cor_ceoName LIKE ? 
-        AND cor_corName LIKE ? 
-        AND cor_num LIKE ? 
-        AND USER.userType_id LIKE ? 
-        AND INFO.grade LIKE ?`; 
+        WHERE cor_ceoName LIKE ?
+            AND cor_corName LIKE ?
+                AND cor_num LIKE ?
+                    AND USER.userType_id LIKE ?
+                        AND INFO.grade LIKE ? `;
 
-        connection.query(query, [`%${user.cor_ceoName}%`, `%${user.cor_corName}%`, `%${user.cor_num}%`, `%${user.userType_id}%`, `%${user.grade}%`], (err: QueryError | Error | null, res: RowDataPacket[]) => {
+        connection.query(query, [`% ${user.cor_ceoName}% `, ` % ${user.cor_corName}% `, ` % ${user.cor_num}% `, ` % ${user.userType_id}% `, ` % ${user.grade}% `], (err: QueryError | Error | null, res: RowDataPacket[]) => {
             if (err) {
                 console.error("에러 발생: ", err);
                 result(err, null);
                 return;
             }
-            if(res.length === 0) {
+            if (res.length === 0) {
                 const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
                 console.error(noMatchingUserError.message);
                 result(noMatchingUserError, null);
@@ -223,7 +231,7 @@ class User {
         JOIN users_info INFO ON USER.users_id = INFO.users_id 
         JOIN users_corInfo COR ON USER.users_id = COR.users_id 
         JOIN users_address ADDR ON USER.users_id = ADDR.users_id 
-        ORDER BY ${orderByClause}`;
+        ORDER BY ${orderByClause} `;
 
         connection.query(query, (err: QueryError | Error | null, res: RowDataPacket[]) => {
             if (err) {
@@ -231,7 +239,7 @@ class User {
                 result(err, null);
                 return;
             }
-            if(res.length === 0) {
+            if (res.length === 0) {
                 const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
                 console.error(noMatchingUserError.message);
                 result(noMatchingUserError, null);
@@ -241,7 +249,7 @@ class User {
             result(null, res);
         });
     }
-    
+
 
     /*------------------------------코드-----------------------------*/
 
@@ -258,7 +266,7 @@ class User {
         });
     }
     // 코드 생성
-    static generateCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader |  RowDataPacket[] | null) => any) {
+    static generateCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => any) {
         connection.query('INSERT INTO users_code SET ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
             if (err) {
                 console.log("에러 발생: ", err);
@@ -270,7 +278,7 @@ class User {
         });
     }
     //코드 검사
-    static checkCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader |  RowDataPacket[] | null) => any) {
+    static checkCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => any) {
         connection.query('SELECT user_code FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
             if (err) {
                 console.log("에러 발생: ", err);
