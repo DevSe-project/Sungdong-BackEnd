@@ -44,7 +44,12 @@ class Category {
     }
     static getByParentCategoryId(parentsCategory_id: string): Promise<any[] | null>  {
       return new Promise<any[] | null>((resolve, reject) => {
-        const query = "SELECT * FROM category WHERE parentsCategory_id = ?";
+        let query;
+        if (parentsCategory_id == null) {
+          query = "SELECT * FROM category WHERE LENGTH(category_id) = 1"
+        } else {   
+          query = "SELECT * FROM category WHERE parentsCategory_id = ?";
+        }
         connection.query(query, [parentsCategory_id], (err: QueryError | null, res: RowDataPacket[]) => {
           if (err) {
             console.log("데이터 조회 중 에러 발생: ", err);
@@ -105,15 +110,15 @@ class Category {
       });
     }
     static deleteByIds(items: any[], result: (error: any, response: any) => void) {
-      const deleteCategoryIds = items.map(item => item.category_id);
+      const deleteCategoryIds = items.map((item) => item.category_id);
     
       // 배열에 값이 있는 경우에만 DELETE 쿼리 실행
       if (deleteCategoryIds.length > 0) {
         // 배열의 길이에 따라서 IN 연산자와 플레이스홀더 동적 생성
-        const placeholders = Array.from({ length: deleteCategoryIds.length }, (_, index) => `?`).join(', ');
-        const deleteQuery = `DELETE FROM category WHERE category_id IN (${placeholders})`;
+        const placeholders = Array.from({ length: deleteCategoryIds.length }, (_, index) => `category_id LIKE ?`).join(' OR ');
+        const deleteQuery = `DELETE FROM category WHERE ${placeholders}`;
     
-        connection.query(deleteQuery, deleteCategoryIds, (err: QueryError | null, res: RowDataPacket[]) => {
+        connection.query(deleteQuery, items.map(item => `${item.category_id}%`), (err: QueryError | null, res: RowDataPacket[]) => {
           if (err) {
             console.log("삭제 작업 중 에러 발생: ", err);
             result(err, null);
