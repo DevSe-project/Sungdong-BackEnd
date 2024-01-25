@@ -1,6 +1,8 @@
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import { Request, Response } from "express"
 import Product from "../models/product.model";
+import multer, { Multer } from "multer";
+import path from "path";
 
 const productController = {
   create: async (req: Request, res: Response) => {
@@ -22,6 +24,7 @@ const productController = {
           product_content: requestData.product_content,
           product_price: requestData.product_price,
           product_discount: requestData.product_discount,
+          product_image_original: requestData.product_image_original,
           product_updated: rearrangedDate,
           product_created: rearrangedDate,
           product_supply: requestData.product_supply,
@@ -76,6 +79,7 @@ const productController = {
         product_content: requestData.product_content,
         product_price: requestData.product_price,
         product_discount: requestData.product_discount,
+        product_image_original: requestData.product_image_original,
         product_updated: rearrangedDate,
         product_supply: requestData.product_supply,
         product_brand: requestData.product_brand,
@@ -134,6 +138,29 @@ const productController = {
           return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true, data });
         }
     })
+  },
+  upload : async (req : Request, res : Response) => {
+      console.log('이미지 업로드 요청 받음');
+    // 이미지 업로드를 위한 multer 설정
+    const storage = multer.diskStorage({
+      destination: 'images/', // 이미지를 저장할 폴더
+      filename: (req, file, cb) => {
+      // 파일명 중복을 피하기 위해 고유한 파일명 생성
+      cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+      },
+    });
+
+    const upload: Multer = multer({ storage: storage });
+    upload.single('image')(req, res, (err) => {
+      if (err) {
+          return res.status(400).json({ error: '이미지를 업로드하지 못했습니다.' });
+      }
+      if (req.file) {
+          const imageUrl = `http://localhost:5050/${req.file.filename}`;
+          const fileName = req.file.filename;
+          return res.json({ imageUrl });
+      }      
+    });
   }
 }
 

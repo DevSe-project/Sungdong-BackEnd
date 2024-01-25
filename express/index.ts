@@ -24,6 +24,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// 정적 파일 제공을 위한 미들웨어 설정
+app.use(express.static('images'));
+
 app.get("/", (req : Request, res : Response)=>{
     const connection = db.getConnection()
     connection.query("SELECT 1", (err, result) => {
