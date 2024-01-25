@@ -112,7 +112,6 @@ const categoryController = {
           if (deleteErr) {
             return res.status(500).send({ message: deleteErr.message || "카테고리를 삭제하는 중 서버 오류가 발생했습니다." });
           } else {
-            console.log("삭제된 데이터들 :", deleteResult);
             // 기존 데이터와 새로운 데이터를 비교하여 변경된 부분만 업데이트
             const updates = existingData.map((existingItem: { category_id: string; }) => {
               const updatedItem = data.find((item: { category_id: string; }) => item.category_id === existingItem.category_id);
