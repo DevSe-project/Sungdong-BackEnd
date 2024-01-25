@@ -99,6 +99,41 @@ const productController = {
       return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
     }
     })
+  },
+  categoryEdit : async (req : Request, res : Response) => {
+    const requestData = req.body;
+    // 데이터베이스에서 불러오기
+    const newData = {
+            product1: {
+              product_id: requestData.product_id,
+              category_id: requestData.category_id,
+              parentsCategory_id: requestData.parentsCategory_id,
+            },
+            product2: {
+              product_id : requestData.product_id,
+              category_id: requestData.category_id,
+              parentsCategory_id: requestData.parentsCategory_id,
+            },
+        };
+    Product.edit(newData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if(err)
+          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
+        }
+    })
+  },
+  delete : async (req : Request, res : Response) => {
+    const requestData = req.params.id;
+    Product.deleteByIds(requestData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if(err)
+          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true, data });
+        }
+    })
   }
 }
 
