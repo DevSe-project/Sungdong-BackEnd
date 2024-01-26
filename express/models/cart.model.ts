@@ -10,14 +10,14 @@ class Cart {
     static create(newProduct:any, result: (arg0: any, arg1: any) => void) {
         performTransaction((connection: PoolConnection) => {
             const queries = [
-                "INSERT INTO cart SET ?",
-                "INSERT INTO cart_product SET ?",
+                "UPDATE cart SET ? WHERE users_id = ?",
+                "INSERT INTO cart_product SET ?, cart_id = (SELECT cart_id FROM cart WHERE users_id = ?)",
                 "UPDATE cart SET cart_totalAmount = (SELECT SUM(cart_amount) AS total FROM cart_product WHERE cart.cart_id = cart_product.cart_id)"
             ];
             const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
             function executeQuery(queryIndex: number) {
             if (queryIndex < queries.length) {
-                connection.query(queries[queryIndex], newProduct[`product${queryIndex + 1}`], (err, res) => {
+                connection.query(queries[queryIndex], [newProduct[0][`product${queryIndex + 1}`], newProduct[1]], (err, res) => {
     
                 if (err) {
                     console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);

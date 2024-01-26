@@ -85,6 +85,10 @@ const authController = {
                 jibunAddress: req.body.jibunAddress,
                 addressDetail: req.body.addressDetail
             },
+            users5: {
+                users_id: commonUserId,
+                userType_id: req.body.userType_id,
+            }
         };
 
         // 데이터베이스에 저장
