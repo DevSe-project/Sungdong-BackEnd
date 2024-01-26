@@ -27,6 +27,19 @@ const cartController = {
       }).format(today);
       const [month, day, year] = formattedDate.split('/');
       const rearrangedDate = `${year}-${month}-${day}`;
+
+
+  // 중복 체크를 위해 데이터베이스에서 검색
+  Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, requestData.selectedOption], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    if (err) {
+        // 서버 오류가 발생한 경우
+        return res.status(500).send({ message: err.message || "서버 오류가 발생했습니다." });
+    }
+
+    // 데이터베이스에서 중복된 상품이 검색되면
+    if (data) {
+        return res.status(400).json({ message: "이미 존재하는 상품입니다.", success: false });
+    } else {
       const newProduct = {
         product1: {
           cart_updated: rearrangedDate,
@@ -50,6 +63,7 @@ const cartController = {
         return res.status(200).json({ message: '성공적으로 상품 생성이 완료 되었습니다.', success: true });
       }
     })
+    }})
   } catch (error) {
     return res.status(403).json({ message: '회원 인증이 만료되었거나 로그인이 필요합니다.' });
   }

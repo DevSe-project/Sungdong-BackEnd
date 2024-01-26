@@ -69,7 +69,32 @@ class Cart {
             }
         });
         }
-        
+        static findOne(data: any[], result: (arg0: any, arg1: any) => void) {
+            const query = `
+            SELECT * 
+            FROM cart_product
+            WHERE cart_product.cart_id = (select cart_id from cart WHERE users_id = ?)
+                AND cart_product.product_id = ?
+                AND cart_product.category_id = ? 
+                AND cart_product.cart_selectedOption = ?`;
+            connection.query(query, [data[0], data[1], data[2], data[3]], (err: QueryError | null, res:RowDataPacket[]) => {
+                try {
+                    if (err) {
+                        console.log("에러 발생: ", err);
+                        result(err, null);
+                    } else {
+                        if (res.length > 0) {
+                            console.log("장바구니에 중복된 상품이 있습니다.: ", res);
+                            result(null, res);
+                        } else {
+                            result(null, null);
+                        }
+                    }
+                } finally {
+                    connection.releaseConnection; // Release the connection in a finally block
+                }
+            });
+        }
         static edit(newProduct: any, result: (error: any, response: any) => void) {
         performTransaction((connection: PoolConnection) => {
     
