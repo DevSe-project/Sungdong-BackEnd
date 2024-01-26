@@ -1,19 +1,15 @@
-import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, OkPacket, ProcedureCallPacket } from 'mysql2';
+import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, OkPacket, ProcedureCallPacket, PoolConnection } from 'mysql2';
 import db from '../db';
 
 // getConnection 함수로 connection 객체 얻기
 const connection = db.getConnection();
+const performTransaction = db.performTransaction;
 
 class User {
 
     // user 튜플 추가 - 회원가입
     static create(newUser: any, result: (arg0: any, arg1: any) => void) {
-        connection.beginTransaction((err) => {
-            if (err) {
-                console.log('트랜잭션 시작 중 에러 발생: ', err);
-                result(err, null);
-                return;
-            }
+        performTransaction((connection: PoolConnection) => {
 
             const queries = [
                 "INSERT INTO users SET ?",
@@ -31,6 +27,7 @@ class User {
                             console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
                             connection.rollback(() => {
                                 result(err, null);
+                                connection.release();
                             });
                         } else {
                             results.push(res);
@@ -43,10 +40,12 @@ class User {
                             console.log('커밋 중 에러 발생: ', commitErr);
                             connection.rollback(() => {
                                 result(commitErr, null);
+                                connection.release();
                             });
                         } else {
                             console.log('트랜잭션 성공적으로 완료: ', results);
                             result(null, results);
+                            connection.release();
                         }
                     });
                 }
@@ -60,14 +59,17 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             } else {
                 if (res.length > 0) {
                     console.log("중복된 아이디: ", res[0]);
                     result(null, res[0]); // 중복된 사용자 정보 반환
+                    connection.releaseConnection;
                 } else {
                     // 결과가 없을 시
                     result({ kind: "not_found" }, null);
+                    connection.releaseConnection;
                 }
             }
         });
@@ -78,14 +80,17 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             } else {
                 if (res.length > 0) {
                     console.log("찾은 아이디: ", res[0]);
                     result(null, res[0]); // 찾은 사용자 정보 반환
+                    connection.releaseConnection;
                 } else {
                     // 결과가 없을 시
                     result("찾을 수 없습니다.", null);
+                    connection.releaseConnection;
                 }
             }
         });
@@ -96,14 +101,17 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             } else {
                 if (res.length > 0) {
                     console.log("찾은 비밀번호: ", res[0]);
                     result(null, res[0]); // 찾은 사용자 정보 반환
+                    connection.releaseConnection;
                 } else {
                     // 결과가 없을 시
                     result("찾을 수 없습니다.", null);
+                    connection.releaseConnection;
                 }
             }
         });
@@ -115,14 +123,17 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             } else {
                 if (res.length > 0) {
                     console.log("찾은 유저: ", res[0]);
                     result(null, res[0]); // 찾은 사용자 정보 반환
+                    connection.releaseConnection;
                 } else {
                     // 결과가 없을 시
                     result("찾을 수 없습니다.", null);
+                    connection.releaseConnection;
                 }
             }
         });
@@ -133,15 +144,18 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, {});
+                connection.releaseConnection;
                 return;
             }
             if (res.length) {
                 console.log("다음 회원이 로그인을 시도합니다: ", res[0]);
                 result(null, res[0]);
+                connection.releaseConnection;
                 return;
             }
             // 결과가 없을 시 
             result(err, {});
+            connection.releaseConnection;
         });
     }
 
@@ -151,16 +165,19 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
 
             if (res.length) {
                 console.log("다음 회원을 찾았습니다: ", res[0]);
                 result(null, res[0]);
+                connection.releaseConnection;
                 return;
             }
             // 결과가 없을 시 
             result({ kind: "not_found" }, null);
+            connection.releaseConnection;
         });
     }
     /*----------------------------- 유저 관리 ----------------------------------*/
@@ -178,10 +195,12 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("가입된 모든 회원들: ", res);
             result(null, res);
+            connection.releaseConnection;
         });
     }
 
@@ -201,16 +220,19 @@ class User {
             if (err) {
                 console.error("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             if (res.length === 0) {
                 const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
                 console.error(noMatchingUserError.message);
                 result(noMatchingUserError, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("필터링 된 유저: ", res);
             result(null, res);
+            connection.releaseConnection;
         });
     }
     // 유저 정렬 - 정렬
@@ -222,6 +244,7 @@ class User {
             const noOrderByError = new Error("정렬할 컬럼이 지정되지 않았습니다.");
             console.error(noOrderByError.message);
             result(noOrderByError, null);
+            connection.releaseConnection;
             return;
         }
 
@@ -237,16 +260,19 @@ class User {
             if (err) {
                 console.error("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             if (res.length === 0) {
                 const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
                 console.error(noMatchingUserError.message);
                 result(noMatchingUserError, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("정렬 된 유저: ", res);
             result(null, res);
+            connection.releaseConnection;
         });
     }
 
@@ -259,10 +285,12 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("생성된 모든 코드들: ", res);
             result(null, res);
+            connection.releaseConnection;
         });
     }
     // 코드 생성
@@ -271,10 +299,12 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("생성된 코드: ", code);
             result(null, res[0]);
+            connection.releaseConnection;
         });
     }
     //코드 검사
@@ -283,10 +313,12 @@ class User {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("확인된 코드: ", code);
             result(null, res[0]);
+            connection.releaseConnection;
         });
     }
     //코드 삭제
@@ -295,10 +327,12 @@ class User {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("해당 코드가 정상적으로 삭제되었습니다: ", code);
             result(null, res);
+            connection.releaseConnection;
         });
     }
     /*----------------------------------------------------------*/
@@ -309,15 +343,18 @@ class User {
                 if (err) {
                     console.log("에러 발생: ", err);
                     result(err, null);
+                    connection.releaseConnection;
                     return;
                 }
                 if (res.length == 0) {
                     // id 결과가 없을 시 
                     result({ kind: "not_found" }, null);
+                    connection.releaseConnection;
                     return;
                 }
                 console.log("회원을 찾았습니다: ", { id: id, ...user });
                 result(null, { id: id, ...user });
+                connection.releaseConnection;
             });
     }
     // user id로 삭제
@@ -326,15 +363,18 @@ class User {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             if (res.length == 0) {
                 // id 결과가 없을 시 
                 result({ kind: "not_found" }, null);
+                connection.releaseConnection;
                 return;
             }
             console.log("해당 ID의 회원이 정상적으로 삭제되었습니다: ", id);
             result(null, res);
+            connection.releaseConnection;
         });
     }
     // user 전체 삭제
@@ -343,14 +383,17 @@ class User {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
+                connection.releaseConnection;
                 return;
             }
             if (res.affectedRows == 0) {
                 result({ kind: "not_found" }, null);
+                connection.releaseConnection;
                 return;
             }
             console.log(`${res.affectedRows} 명의 회원을 삭제하였습니다.`);
             result(null, res);
+            connection.releaseConnection;
         });
     }
     /*-------------------------------------------------------------*/

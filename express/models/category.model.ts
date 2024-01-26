@@ -1,8 +1,9 @@
-import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket } from 'mysql2';
+import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, Pool } from 'mysql2';
 import db from '../db';
 
 // getConnection 함수로 connection 객체 얻기
 const connection = db.getConnection();
+const performTransaction = db.performTransaction;
 
 class Category {
     // category 튜플 추가
@@ -20,6 +21,7 @@ class Category {
             // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
             if (results.length === newCategory.length) {
               console.log("새 카테고리가 생성되었습니다: ", ...results);
+              connection.releaseConnection;
               return results
             }
           }
@@ -32,12 +34,13 @@ class Category {
           if (err) {
             console.log("에러 발생: ", err);
             result(err, null);
+            connection.releaseConnection;
             return;
           }
           else {
-            // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
             console.log("카테고리가 갱신되었습니다: ", res);
             result(null, res);
+            connection.releaseConnection;
             return;
           }
       });
@@ -54,9 +57,11 @@ class Category {
           if (err) {
             console.log("데이터 조회 중 에러 발생: ", err);
             reject(err);
+          } else {
+            console.log("데이터 조회 완료: ", res);
+            resolve(res);
           }
-          console.log("데이터 조회 완료: ", res);
-          resolve(res);
+          connection.releaseConnection;
         });
       })
     }
@@ -78,10 +83,12 @@ class Category {
       .then(results => {
         console.log("모든 카테고리가 갱신되었습니다.");
         result(null, results);
+        connection.releaseConnection;
       })
       .catch(error => {
         console.log("에러 발생: ", error);
         result(error, null);
+        connection.releaseConnection;
       });
     }
     static async getlastestCategoryId(parentCategory: string | null): Promise<string | null> {
@@ -106,6 +113,7 @@ class Category {
               resolve(null);
             }
           }
+          connection.releaseConnection;
         });
       });
     }
@@ -122,15 +130,18 @@ class Category {
           if (err) {
             console.log("삭제 작업 중 에러 발생: ", err);
             result(err, null);
+            connection.releaseConnection;
             return;
           }
-          console.log("삭제 작업이 완료되었습니다.", res);
-          result(null, res);
-        });
-      } else {
-        // 삭제할 데이터가 없는 경우에도 콜백 호출
-        result(null, "삭제할 데이터가 없습니다.");
-      }
+            console.log("삭제 작업이 완료되었습니다.", res);
+            result(null, res);
+            connection.releaseConnection;
+          });
+          } else {
+            // 삭제할 데이터가 없는 경우에도 콜백 호출
+            result(null, "삭제할 데이터가 없습니다.");
+            connection.releaseConnection;
+          }
     }
 }
 
