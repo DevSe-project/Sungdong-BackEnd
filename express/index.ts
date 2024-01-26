@@ -6,6 +6,7 @@ import cors from 'cors'
 import db from './db'
 import cookieParser from 'cookie-parser';
 import productRouter from "./routes/product";
+import cartRouter from "./routes/cart";
 const app : Express = express()
 const PORT = 5050;
 
@@ -33,11 +34,13 @@ app.get("/", (req : Request, res : Response)=>{
         console.log(result)
     })
     res.send({"msg" : "Hello SungDong asdaasdasdsd!"});
+    connection.releaseConnection;
 });
 
 app.use("/auth", authRouter)
 app.use("/category", categoryRouter)
 app.use("/delivery", dlRouter)
 app.use("/product", productRouter)
+app.use("/cart", cartRouter);
 
 app.listen(PORT, ()=>{ console.log(`[SERVER] : http://localhost:${PORT} ON!`) })
