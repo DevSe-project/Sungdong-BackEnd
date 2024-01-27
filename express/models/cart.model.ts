@@ -138,49 +138,22 @@ class Cart {
         executeQuery(0);
     });
     }
-    static deleteByIds(product: string, result: (error: any, response: any) => void) {
-    performTransaction((connection: PoolConnection) => {
-
-    const queries = [
-        "DELETE FROM product WHERE product_id = ?",
-        "DELETE FROM product_option WHERE product_id = ?"
-        ]
-    
-        const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-    
-        function executeQuery(queryIndex: number) {
-            if (queryIndex < queries.length) {
-                connection.query(queries[queryIndex], product, (err, res) => {
-                if (err) {
-                    console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                    connection.rollback(() => {
-                    result(err, null);
-                    connection.release();
-                    });
-                } else {
-                    results.push(res);
-                    executeQuery(queryIndex + 1);
-                }
-                });
+    static deleteByIds(product: number[], result: (error: any, response: any) => void) {
+    const query = "DELETE FROM cart_product WHERE cart_product_id IN (?)"
+    console.log(query)
+    console.log(product)
+            connection.query(query, [product], (err, res) => {
+            if (err) {
+                console.log(`쿼리 실행 중 에러 발생: `, err);
+                result(err, null);
+                connection.releaseConnection;
             } else {
-                connection.commit((commitErr) => {
-                if (commitErr) {
-                    console.log('커밋 중 에러 발생: ', commitErr);
-                    connection.rollback(() => {
-                    result(commitErr, null);
-                    connection.release();
-                    });
-                } else {
-                    console.log('트랜잭션 성공적으로 완료: ', results);
-                    result(null, results);
-                    connection.release();
-                }
-                });
+                console.log('성공적으로 삭제 완료: ', res);
+                result(null, res);
+                connection.releaseConnection;
             }
-            }
-            executeQuery(0);
         })
-    }
-}
+    }           
+}   
 
 export = Cart;
