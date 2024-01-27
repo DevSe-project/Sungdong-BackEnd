@@ -140,11 +140,11 @@ class User {
         });
     }
     // 로그인
-    static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
+    static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | Error | null, arg1: any) => void) {
         connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
-                result(err, {});
+                result(err, null);
                 connection.releaseConnection;
                 return;
             }
@@ -153,10 +153,12 @@ class User {
                 result(null, res[0]);
                 connection.releaseConnection;
                 return;
+            } else {
+                // 결과가 없을 시 
+                result(new Error("아이디와 비밀번호를 다시 확인해주세요"), null);
+                connection.releaseConnection;
+                return;
             }
-            // 결과가 없을 시 
-            result(err, {});
-            connection.releaseConnection;
         });
     }
 

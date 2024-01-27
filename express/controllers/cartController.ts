@@ -12,7 +12,7 @@ const cartController = {
   create: async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
       if (!token) {
-          return res.status(401).json({msg : "token null"})
+        return res.status(401).json({message : "로그인 후 사용 가능합니다."})
       }
 
     try {
@@ -30,10 +30,10 @@ const cartController = {
 
 
   // 중복 체크를 위해 데이터베이스에서 검색
-  Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, requestData.selectedOption], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+  Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, requestData.selectedOption], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
     if (err) {
         // 서버 오류가 발생한 경우
-        return res.status(500).send({ message: err.message || "서버 오류가 발생했습니다." });
+        return res.status(500).send({ message: err || "서버 오류가 발생했습니다." });
     }
 
     // 데이터베이스에서 중복된 상품이 검색되면
