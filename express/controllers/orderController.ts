@@ -4,16 +4,32 @@ import Order from "../models/order.model";
 import multer, { Multer } from "multer";
 import path from "path";
 import jwt from 'jsonwebtoken'
+import User from "../models/users.model";
 
 const jwtSecret = 'sung_dong'
 
 
 const orderController = { 
   write: (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+        return res.status(401).json({msg : "token null"})
+    }
     try {
       const requestData = req.body;
-      req.session.orderData = requestData;
-      res.status(200).json({ success: true, message: '주문서 작성 데이터를 불러왔습니다..', requestData });
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded;
+
+      const userData = req.user;
+
+      User.findAllUserInfo(userData, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        if (err) {
+            return res.status(500).send({ message: err });
+        } else {
+          req.session.orderData = requestData;
+          res.status(200).json({ success: true, message: '해당 상품들로 주문서 작성을 시작합니다.', requestData, data });
+        }
+      });
     } catch (error) {
       return res.status(500).json({ message: '장바구니에서 주문 작성으로 데이터를 넘기지 못했습니다.' });
     }
@@ -21,6 +37,7 @@ const orderController = {
   read: (req: Request, res: Response) => {
     try {
       const orderData = req.session.orderData || {};
+      res.status(200).json({ success: true, message: '주문서 정보를 다시 불러왔습니다.', orderData });
     } catch (error) {
       return res.status(500).json({ message: '장바구니에서 주문 작성으로 데이터를 넘기지 못했습니다.' });
     }
