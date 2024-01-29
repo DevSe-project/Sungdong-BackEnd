@@ -112,6 +112,28 @@ class Product {
             executeQuery(0);
         });
     }
+    static lowSupply(newProducts: any[]): Promise<any> {
+        const updateQuery = "UPDATE product SET product_supply = ? WHERE product_id = ?";
+        const promises: Promise<any>[] = [];
+    
+        newProducts.forEach((item) => {
+        const promise = new Promise((resolve, reject) => {
+            connection.query(updateQuery, [item.product_supply, item.product_id], (err, res) => {
+            if (err) {
+                console.log(`쿼리 실행 중 에러 발생: `, err);
+                reject(err);
+            } else {
+                console.log(`성공적으로 변경 완료: `, res);
+                resolve(res);
+            }
+            });
+        });
+    
+        promises.push(promise);
+        });
+    
+        return Promise.all(promises);
+    }
     static deleteByIds(product: string, result: (error: any, response: any) => void) {
         performTransaction((connection: PoolConnection) => {
 

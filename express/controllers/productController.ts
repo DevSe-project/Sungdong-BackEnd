@@ -128,6 +128,23 @@ const productController = {
         }
     })
   },
+  supplyLow : async (req : Request, res : Response) => {
+    const requestData = req.body.map((item: {
+      cnt: string; product_id: any; product_supply: string; 
+    }) => ({
+      product_id: item.product_id,
+      product_supply: parseInt(item.product_supply) - parseInt(item.cnt)
+    }));
+    Product.lowSupply(requestData)
+    .then((result) => {
+      console.log('모든 상품의 재고가 재설정 되었습니다:', result);
+      return res.status(200).json({ message: '성공적으로 상품 재고 변경이 완료 되었습니다.', success: true});
+    })
+    .catch((error) => {
+      console.error('상품의 재고를 업데이트하는 중 오류가 발생했습니다:', error);
+      return res.status(500).send({ message: error || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+    });
+  },
   delete : async (req : Request, res : Response) => {
     const requestData = req.params.id;
     Product.deleteByIds(requestData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{

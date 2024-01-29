@@ -5,8 +5,11 @@ import dlRouter from "./routes/delivery"
 import cors from 'cors'
 import db from './db'
 import cookieParser from 'cookie-parser';
+import session from "express-session";
+
 import productRouter from "./routes/product";
 import cartRouter from "./routes/cart";
+import orderRouter from "./routes/order";
 const app : Express = express()
 const PORT = 5050;
 
@@ -25,6 +28,12 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use(session({
+    secret: 'sung_dong',
+    resave: false,
+    saveUninitialized: true,
+}));
+
 // 정적 파일 제공을 위한 미들웨어 설정
 app.use(express.static('images'));
 
@@ -37,10 +46,18 @@ app.get("/", (req : Request, res : Response)=>{
     connection.releaseConnection;
 });
 
+declare module 'express-session' {
+    interface SessionData {
+        orderData?: any; // 사용자 정의 세션 속성
+    }
+}
+
+
 app.use("/auth", authRouter)
 app.use("/category", categoryRouter)
 app.use("/delivery", dlRouter)
 app.use("/product", productRouter)
 app.use("/cart", cartRouter);
+app.use("/order", orderRouter);
 
 app.listen(PORT, ()=>{ console.log(`[SERVER] : http://localhost:${PORT} ON!`) })

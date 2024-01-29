@@ -8,6 +8,7 @@ productRouter.post("/create", productController.create);
 productRouter.post("/upload", productController.upload);
 productRouter.patch("/edit", productController.edit);
 productRouter.put("/categoryEdit", productController.categoryEdit);
+productRouter.put("/supplyLow", productController.supplyLow);
 productRouter.delete("/delete/:id", productController.delete);
 
 

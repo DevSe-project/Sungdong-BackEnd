@@ -5,51 +5,84 @@ import db from '../db';
 const connection = db.getConnection();
 const performTransaction = db.performTransaction;
 
-class Cart {
+class Order {
     // category 튜플 추가
-    static create(newProduct:any, result: (arg0: any, arg1: any) => void) {
+    static create(newProduct: any, result: (arg0: any, arg1: any) => void) {
         performTransaction((connection: PoolConnection) => {
-            const queries = [
-                "UPDATE cart SET ? WHERE users_id = ?",
-                "INSERT INTO cart_product SET ?, cart_id = (SELECT cart_id FROM cart WHERE users_id = ?)",
-                "UPDATE cart SET cart_totalAmount = (SELECT SUM(cart_amount) AS total FROM cart_product WHERE cart.cart_id = cart_product.cart_id)"
-            ];
-            const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-            function executeQuery(queryIndex: number) {
-            if (queryIndex < queries.length) {
-                connection.query(queries[queryIndex], [newProduct[0][`product${queryIndex + 1}`], newProduct[1]], (err, res) => {
+        const queries = [
+            "INSERT INTO `order` SET ?",
+            "INSERT INTO order_product SET ?",
+            "INSERT INTO delivery SET ?"
+        ];
     
+        const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
+    
+        function executeQuery(queryIndex: number) {
+            if (queryIndex < queries.length) {
+            const query = queries[queryIndex];
+    
+            // 2번째 쿼리만 객체의 개수만큼 반복하기 위한 조건
+            if (queryIndex === 1 && newProduct[0].product2 && newProduct[0].product2.length > 0) {
+                // 2번째 쿼리가 모두 수행될 때 넘기도록 Promise화
+                const promises = newProduct[0].product2.map((item: any) => {
+                return new Promise((resolve, reject) => {
+                    connection.query(query, [item], (err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                    });
+                });
+                });
+    
+                // 2번째 쿼리가 전부 수행되면 푸시 & 커밋
+                Promise.all(promises)
+                .then((resArray) => {
+                    results.push(resArray);
+                    executeQuery(queryIndex + 1); // Proceed to the next query
+                })
+                .catch((err) => {
+                    console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                    connection.rollback(() => {
+                    result(err, null);
+                    connection.release();
+                    });
+                });
+            } else {
+                // 나머지 쿼리문 수행
+                connection.query(query, [newProduct[0][`product${queryIndex + 1}`]], (err, res) => {
                 if (err) {
                     console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
                     connection.rollback(() => {
-                        result(err, null);
-                        connection.release();
-                        return;
+                    result(err, null);
+                    connection.release();
                     });
                 } else {
                     results.push(res);
                     executeQuery(queryIndex + 1);
                 }
-            });
+                });
+            }
             } else {
             connection.commit((commitErr) => {
-            if (commitErr) {
+                if (commitErr) {
                 console.log('커밋 중 에러 발생: ', commitErr);
                 connection.rollback(() => {
                     result(commitErr, null);
                     connection.release();
-                    return;
                 });
-            } else {
+                } else {
                 console.log('트랜잭션 성공적으로 완료: ', results);
                 result(null, results);
                 connection.release();
-            }
+                }
             });
+            }
         }
-        }
-        executeQuery(0);
-    });
+    
+        executeQuery(0); // Start with the first query
+        });
     }
     static list(user_id: string, result: (arg0: any, arg1: any) => void) {
       const query = `SELECT * FROM cart JOIN cart_product ON cart.cart_id = cart_product.cart_id JOIN product ON product.product_id = cart_product.product_id WHERE cart.users_id = ?`;
@@ -156,4 +189,4 @@ class Cart {
     }           
 }   
 
-export = Cart;
+export = Order;
