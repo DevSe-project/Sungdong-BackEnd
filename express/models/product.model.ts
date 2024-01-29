@@ -7,52 +7,52 @@ const performTransaction = db.performTransaction;
 
 class Product {
     // category 튜플 추가
-    static create(newProduct:any, result: (arg0: any, arg1: any) => void) {
+    static create(newProduct: any, result: (arg0: any, arg1: any) => void) {
         performTransaction((connection: PoolConnection) => {
             const queries = [
                 "INSERT INTO product SET ?",
                 "INSERT INTO product_option SET ?",
-                ];
+            ];
             const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
             function executeQuery(queryIndex: number) {
-            if (queryIndex < queries.length) {
-                connection.query(queries[queryIndex], newProduct[`product${queryIndex + 1}`], (err, res) => {
-    
-                if (err) {
-                    console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                    connection.rollback(() => {
-                        result(err, null);
-                        connection.release();
-                        return;
+                if (queryIndex < queries.length) {
+                    connection.query(queries[queryIndex], newProduct[`product${queryIndex + 1}`], (err, res) => {
+
+                        if (err) {
+                            console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                            connection.rollback(() => {
+                                result(err, null);
+                                connection.release();
+                                return;
+                            });
+                        } else {
+                            results.push(res);
+                            executeQuery(queryIndex + 1);
+                        }
                     });
                 } else {
-                    results.push(res);
-                    executeQuery(queryIndex + 1);
+                    connection.commit((commitErr) => {
+                        if (commitErr) {
+                            console.log('커밋 중 에러 발생: ', commitErr);
+                            connection.rollback(() => {
+                                result(commitErr, null);
+                                connection.release();
+                                return;
+                            });
+                        } else {
+                            console.log('트랜잭션 성공적으로 완료: ', results);
+                            result(null, results);
+                            connection.release();
+                        }
+                    });
                 }
-            });
-            } else {
-            connection.commit((commitErr) => {
-            if (commitErr) {
-                console.log('커밋 중 에러 발생: ', commitErr);
-                connection.rollback(() => {
-                    result(commitErr, null);
-                    connection.release();
-                    return;
-                });
-            } else {
-                console.log('트랜잭션 성공적으로 완료: ', results);
-                result(null, results);
-                connection.release();
             }
-            });
-        }
-        }
-        executeQuery(0);
-    });
+            executeQuery(0);
+        });
     }
     static list(result: (arg0: any, arg1: any) => void) {
-      const query = `SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id`;
-        connection.query(query, (err: QueryError | null, res:RowDataPacket[]) => {
+        const query = `SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id`;
+        connection.query(query, (err: QueryError | null, res: RowDataPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -67,90 +67,90 @@ class Product {
                 return;
             }
         });
-        }
-        
-        static edit(newProduct: any, result: (error: any, response: any) => void) {
+    }
+
+    static edit(newProduct: any, result: (error: any, response: any) => void) {
         performTransaction((connection: PoolConnection) => {
-    
-        const queries = [
-        "UPDATE product SET ? WHERE product_id = ?",
-        "UPDATE product_option SET ? WHERE product_id = ?",
-        ];
-    
-        const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-    
-        function executeQuery(queryIndex: number) {
-        if (queryIndex < queries.length) {
-            connection.query(queries[queryIndex], [newProduct[`product${queryIndex + 1}`], newProduct[`product${queryIndex + 1}`].product_id], (err, res) => {
-            if (err) {
-                console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                connection.rollback(() => {
-                result(err, null);
-                connection.release();
-                });
-            } else {
-                results.push(res);
-                executeQuery(queryIndex + 1);
+
+            const queries = [
+                "UPDATE product SET ? WHERE product_id = ?",
+                "UPDATE product_option SET ? WHERE product_id = ?",
+            ];
+
+            const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
+
+            function executeQuery(queryIndex: number) {
+                if (queryIndex < queries.length) {
+                    connection.query(queries[queryIndex], [newProduct[`product${queryIndex + 1}`], newProduct[`product${queryIndex + 1}`].product_id], (err, res) => {
+                        if (err) {
+                            console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                            connection.rollback(() => {
+                                result(err, null);
+                                connection.release();
+                            });
+                        } else {
+                            results.push(res);
+                            executeQuery(queryIndex + 1);
+                        }
+                    });
+                } else {
+                    connection.commit((commitErr) => {
+                        if (commitErr) {
+                            console.log('커밋 중 에러 발생: ', commitErr);
+                            connection.rollback(() => {
+                                result(commitErr, null);
+                                connection.release();
+                            });
+                        } else {
+                            console.log('트랜잭션 성공적으로 완료: ', results);
+                            result(null, results);
+                            connection.release();
+                        }
+                    });
+                }
             }
-            });
-        } else {
-            connection.commit((commitErr) => {
-            if (commitErr) {
-                console.log('커밋 중 에러 발생: ', commitErr);
-                connection.rollback(() => {
-                result(commitErr, null);
-                connection.release();
-                });
-            } else {
-                console.log('트랜잭션 성공적으로 완료: ', results);
-                result(null, results);
-                connection.release();
-            }
-            });
-        }
-        }
-        executeQuery(0);
-    });
+            executeQuery(0);
+        });
     }
     static deleteByIds(product: string, result: (error: any, response: any) => void) {
-    performTransaction((connection: PoolConnection) => {
+        performTransaction((connection: PoolConnection) => {
 
-    const queries = [
-        "DELETE FROM product WHERE product_id = ?",
-        "DELETE FROM product_option WHERE product_id = ?"
-        ]
-    
-        const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-    
-        function executeQuery(queryIndex: number) {
-            if (queryIndex < queries.length) {
-                connection.query(queries[queryIndex], product, (err, res) => {
-                if (err) {
-                    console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                    connection.rollback(() => {
-                    result(err, null);
-                    connection.release();
+            const queries = [
+                "DELETE FROM product WHERE product_id = ?",
+                "DELETE FROM product_option WHERE product_id = ?"
+            ]
+
+            const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
+
+            function executeQuery(queryIndex: number) {
+                if (queryIndex < queries.length) {
+                    connection.query(queries[queryIndex], product, (err, res) => {
+                        if (err) {
+                            console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                            connection.rollback(() => {
+                                result(err, null);
+                                connection.release();
+                            });
+                        } else {
+                            results.push(res);
+                            executeQuery(queryIndex + 1);
+                        }
                     });
                 } else {
-                    results.push(res);
-                    executeQuery(queryIndex + 1);
-                }
-                });
-            } else {
-                connection.commit((commitErr) => {
-                if (commitErr) {
-                    console.log('커밋 중 에러 발생: ', commitErr);
-                    connection.rollback(() => {
-                    result(commitErr, null);
-                    connection.release();
+                    connection.commit((commitErr) => {
+                        if (commitErr) {
+                            console.log('커밋 중 에러 발생: ', commitErr);
+                            connection.rollback(() => {
+                                result(commitErr, null);
+                                connection.release();
+                            });
+                        } else {
+                            console.log('트랜잭션 성공적으로 완료: ', results);
+                            result(null, results);
+                            connection.release();
+                        }
                     });
-                } else {
-                    console.log('트랜잭션 성공적으로 완료: ', results);
-                    result(null, results);
-                    connection.release();
                 }
-                });
-            }
             }
             executeQuery(0);
         })
