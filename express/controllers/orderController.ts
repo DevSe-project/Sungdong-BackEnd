@@ -89,7 +89,6 @@ const orderController = {
           bname: requestData.orderInformation.address.bname,
           buildingName: requestData.orderInformation.address.buildingName,
           jibunAddress: requestData.orderInformation.jibunAddress ? requestData.orderInformation.jibunAddress : '',
-          order_date: rearrangedDate,
           order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
           sum + ((item.cart_price * item.cnt) - ((item.cart_price / 100) * item.cart_discount) * item.cnt)
           , 3000),

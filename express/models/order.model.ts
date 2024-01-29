@@ -103,7 +103,7 @@ class Order {
         });
         }
         static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
-            const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY 1 LIMIT 1)";
+            const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1)";
             connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
                 if (err) {
                     console.log("에러 발생: ", err);
@@ -121,7 +121,7 @@ class Order {
             });
             }
     static findOne(userData: any, result: (arg0: any, arg1: any) => void) {
-            const query = "SELECT * FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY 1 LIMIT 1";
+            const query = "SELECT * FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1";
             connection.query(query, userData, (err: QueryError | null, res:RowDataPacket[]) => {
                 try {
                     if (err) {
