@@ -5,7 +5,7 @@ import multer, { Multer } from "multer";
 import path from "path";
 import jwt from 'jsonwebtoken'
 import User from "../models/users.model";
-
+import shortid from "shortid";
 const jwtSecret = 'sung_dong'
 
 
@@ -42,7 +42,7 @@ const orderController = {
       return res.status(500).json({ message: '장바구니에서 주문 작성으로 데이터를 넘기지 못했습니다.' });
     }
   }, 
-  create: async (req: Request, res: Response, next: NextFunction) => {
+  create: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
       if (!token) {
         return res.status(401).json({message : "로그인 후 사용 가능합니다."})
@@ -60,43 +60,56 @@ const orderController = {
       }).format(today);
       const [month, day, year] = formattedDate.split('/');
       const rearrangedDate = `${year}-${month}-${day}`;
-
-
-  // 중복 체크를 위해 데이터베이스에서 검색
-  Order.findOne([req.user.users_id, requestData.product_id, requestData.category_id, requestData.selectedOption], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
-    if (err) {
-        // 서버 오류가 발생한 경우
-        return res.status(500).send({ message: err || "서버 오류가 발생했습니다." });
-    }
-
-    // 데이터베이스에서 중복된 상품이 검색되면
-    if (data) {
-        return res.status(400).json({ message: "이미 존재하는 상품입니다.", success: false });
-    } else {
+      const newId = shortid();
+      const orderListMap = requestData.orderList.map((item: {
+        cart_selectedOption: string;
+        cart_amount: string;
+        cnt: string;
+        category_id: string;
+        parentsCategory_id: string; 
+        product_id: string; 
+}) => ({
+        order_id: newId,
+        users_id: req.user.users_id,
+        product_id: item.product_id,
+        parentsCategory_id: item.parentsCategory_id,
+        category_id: item.category_id,
+        order_cnt: item.cnt,
+        order_productPrice: item.cart_amount,
+        selectedOption: item.cart_selectedOption
+      }))
       const newProduct = {
         product1: {
-          cart_updated: rearrangedDate,
+          order_id: newId,
+          users_id: req.user.users_id,
+          userType_id: req.user.userType_id,
+          ...(( { address, checked, ...restOrderInfo } = requestData.orderInformation ) => restOrderInfo)(),
+          zonecode: requestData.orderInformation.address.zonecode,
+          roadAddress: requestData.orderInformation.address.roadAddress,
+          bname: requestData.orderInformation.address.bname,
+          buildingName: requestData.orderInformation.address.buildingName,
+          jibunAddress: requestData.orderInformation.jibunAddress,
+          order_date: rearrangedDate,
+          order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
+          sum + ((item.cart_price * item.cnt) - ((item.cart_price / 100) * item.cart_discount) * item.cnt)
+          , 3000),
+          orderState: 1
         },
-        product2: {
-          product_id : requestData.product_id,
-          category_id: requestData.category_id,
-          parentsCategory_id: requestData.parentsCategory_id,
-          cart_price: requestData.product_price,
-          cart_discount: requestData.product_discount,
-          cart_cnt: requestData.cnt,
-          cart_amount: (requestData.product_price - ((requestData.product_price / 100) * requestData.product_discount)) * requestData.cnt,
-          cart_selectedOption : requestData.selectedOption
+        product2: orderListMap,
+        product3: {
+          order_id: newId,
+          users_id: req.user.users_id,
+          ...requestData.deliveryInformation,
         },
     };
-    Order.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+    Order.create([newProduct, newId], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if(err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
       else {
-        return res.status(200).json({ message: '성공적으로 상품 생성이 완료 되었습니다.', success: true });
+        return res.status(200).json({ message: '성공적으로 주문이 완료 되었습니다.', success: true });
       }
     })
-    }})
   } catch (error) {
     return res.status(403).json({ message: '회원 인증이 만료되었거나 로그인이 필요합니다.' });
   }

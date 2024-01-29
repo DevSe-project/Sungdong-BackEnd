@@ -5,10 +5,10 @@ import dlRouter from "./routes/delivery"
 import cors from 'cors'
 import db from './db'
 import cookieParser from 'cookie-parser';
+import session from "express-session";
 
 import productRouter from "./routes/product";
 import cartRouter from "./routes/cart";
-import session from "express-session";
 import orderRouter from "./routes/order";
 const app : Express = express()
 const PORT = 5050;
