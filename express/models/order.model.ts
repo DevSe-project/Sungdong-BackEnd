@@ -85,7 +85,7 @@ class Order {
         });
     }
     static list(user_id: string, result: (arg0: any, arg1: any) => void) {
-      const query = `SELECT * FROM cart JOIN cart_product ON cart.cart_id = cart_product.cart_id JOIN product ON product.product_id = cart_product.product_id WHERE cart.users_id = ?`;
+      const query = `SELECT * FROM order JOIN order_product ON order.order_id = order_product.order_id JOIN product ON product.product_id = cart_product.product_id WHERE cart.users_id = ?`;
         connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
@@ -102,33 +102,41 @@ class Order {
             }
         });
         }
-        static findOne(data: any[], result: (arg0: any, arg1: any) => void) {
-            const query = `
-            SELECT * 
-            FROM cart_product
-            WHERE cart_product.cart_id = (select cart_id from cart WHERE users_id = ?)
-                AND cart_product.product_id = ?
-                AND cart_product.category_id = ? 
-                AND cart_product.cart_selectedOption = ?`;
-            connection.query(query, [data[0], data[1], data[2], data[3]], (err: QueryError | null, res:RowDataPacket[]) => {
+        static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
+            const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY 1 LIMIT 1)";
+            connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
+                if (err) {
+                    console.log("에러 발생: ", err);
+                    result(err, null);
+                    connection.releaseConnection;
+                    return;
+                }
+                else {
+                    // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                    console.log("상품이 갱신되었습니다: ", res);
+                    result(null, res);
+                    connection.releaseConnection;
+                    return;
+                }
+            });
+            }
+    static findOne(userData: any, result: (arg0: any, arg1: any) => void) {
+            const query = "SELECT * FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY 1 LIMIT 1";
+            connection.query(query, userData, (err: QueryError | null, res:RowDataPacket[]) => {
                 try {
                     if (err) {
                         console.log("에러 발생: ", err);
                         result(err, null);
                     } else {
-                        if (res.length > 0) {
-                            console.log("장바구니에 중복된 상품이 있습니다.: ", res);
-                            result(null, res);
-                        } else {
-                            result(null, null);
-                        }
+                        console.log("해당 유저의 가장 마지막 주문을 불렀습니다.: ", res);
+                        result(null, res);
                     }
                 } finally {
                     connection.releaseConnection; // Release the connection in a finally block
                 }
             });
         }
-        static edit(newProduct: any, result: (error: any, response: any) => void) {
+    static edit(newProduct: any, result: (error: any, response: any) => void) {
         performTransaction((connection: PoolConnection) => {
     
         const queries = [

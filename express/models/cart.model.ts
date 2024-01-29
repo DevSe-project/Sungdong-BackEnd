@@ -12,7 +12,6 @@ class Cart {
             const queries = [
                 "UPDATE cart SET ? WHERE users_id = ?",
                 "INSERT INTO cart_product SET ?, cart_id = (SELECT cart_id FROM cart WHERE users_id = ?)",
-                "UPDATE cart SET cart_totalAmount = (SELECT SUM(cart_amount) AS total FROM cart_product WHERE cart.cart_id = cart_product.cart_id)"
             ];
             const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
             function executeQuery(queryIndex: number) {
