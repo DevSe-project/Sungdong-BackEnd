@@ -5,6 +5,7 @@ const orderRouter : Router = express.Router()
 
 orderRouter.get("/list", orderController.list);
 orderRouter.post("/findList", orderController.findList);
+orderRouter.post("/findSelectOrderList", orderController.findSelectOrderList);
 orderRouter.post("/write", orderController.write);
 orderRouter.get("/read", orderController.read);
 orderRouter.get("/findOne", orderController.findOne);

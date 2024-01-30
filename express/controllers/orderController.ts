@@ -1,8 +1,6 @@
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import { NextFunction, Request, Response } from "express"
 import Order from "../models/order.model";
-import multer, { Multer } from "multer";
-import path from "path";
 import jwt from 'jsonwebtoken'
 import User from "../models/users.model";
 import shortid from "shortid";
@@ -52,14 +50,6 @@ const orderController = {
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
       const requestData = req.body;
-      const today = new Date();
-      const formattedDate = new Intl.DateTimeFormat('en-Us', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(today);
-      const [month, day, year] = formattedDate.split('/');
-      const rearrangedDate = `${year}-${month}-${day}`;
       const newId = shortid();
       const orderListMap = requestData.orderList.map((item: {
         cart_selectedOption: string;
@@ -101,7 +91,7 @@ const orderController = {
           ...requestData.deliveryInformation,
         },
     };
-    Order.create([newProduct, newId], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+    Order.create([newProduct, newId], (err: { message: any; }) =>{
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if(err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
@@ -124,12 +114,56 @@ const orderController = {
       req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
       const requestData = req.user;
     // 데이터베이스에서 불러오기
-    Order.list(requestData.users_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+    Order.list(requestData.users_id, (err: { message: any; }, data: any[] | null) =>{
         // 클라이언트에서 보낸 JSON 데이터를 받음
         if(err)
           return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
         else {
-          return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
+          const groupedData: any[] = [];
+          data?.forEach((item: {
+            delivery_num: any;
+            delivery_selectedCor: string;
+            deliveryType: string;
+            delivery_date: Date;
+            product_spec: string; 
+            order_id: any; 
+            users_id: string; 
+            order_date: Date; 
+            orderState: number; 
+            order_productPrice: string; 
+            selectedOption: string; 
+            order_cnt: number; 
+            product_title: string; 
+            product_image_original: any; 
+}) => {
+            const orderId = item.order_id;
+        
+            if (!groupedData[orderId]) {
+              groupedData[orderId] = {
+                order_id: orderId,
+                users_id: item.users_id,
+                order_date: item.order_date,
+                orderState: item.orderState,
+                delivery_date: item.delivery_date,
+                deliveryType: item.deliveryType,
+                delivery_selectedCor: item.delivery_selectedCor,
+                delivery_num: item.delivery_num,
+                products: [],
+              };
+            }
+        
+            groupedData[orderId].products.push({
+              order_productPrice: item.order_productPrice,
+              selectedOption: item.selectedOption,
+              order_cnt: item.order_cnt,
+              product_title: item.product_title,
+              product_spec: item.product_spec,
+              product_image_original: item.product_image_original,
+            });
+          });
+        
+          const result = Object.values(groupedData);
+          return res.status(200).json({ message: '성공적으로 주문 상품 갱신이 완료 되었습니다.', success: true, result });
         }
     })
   } catch (error) {
@@ -139,7 +173,7 @@ const orderController = {
   findList : async (req : Request, res : Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
     if (!token) {
-        return res.status(401).json({msg : "token null"})
+      return res.status(401).json({message : "로그인 후 이용가능한 서비스입니다."})
     }
 
     try {
@@ -159,6 +193,29 @@ const orderController = {
     return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
   }
   },   
+  findSelectOrderList : async (req : Request, res : Response, next: NextFunction) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+        return res.status(401).json({message : "로그인 후 이용가능한 서비스입니다."})
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      const requestData = req.user;
+    // 데이터베이스에서 불러오기
+    Order.findSelectOrderList(requestData.users_id, req.body.order_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if(err)
+          return res.status(500).send({ message: err.message || "주문 내역을 갱신 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 주문 내역을 불러왔습니다.', success: true, data });
+        }
+    })
+  } catch (error) {
+    return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
+  }
+  }, 
   findOne : async (req : Request, res : Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
     if (!token) {

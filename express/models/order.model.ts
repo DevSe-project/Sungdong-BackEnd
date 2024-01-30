@@ -85,7 +85,26 @@ class Order {
         });
     }
     static list(user_id: string, result: (arg0: any, arg1: any) => void) {
-      const query = `SELECT * FROM order JOIN order_product ON order.order_id = order_product.order_id JOIN product ON product.product_id = cart_product.product_id WHERE cart.users_id = ?`;
+        const query = "SELECT order.order_id, order.users_id, order.order_date, order.orderState, order_product.order_productPrice, order_product.selectedOption, order_product.order_cnt, product.product_spec, product.product_title, product.product_image_original, delivery.delivery_date, delivery.delivery_selectedCor, delivery.deliveryType, delivery.delivery_num FROM `order` JOIN order_product ON `order`.order_id = order_product.order_id JOIN product ON product.product_id = order_product.product_id JOIN delivery ON delivery.order_id = order.order_id WHERE `order`.users_id = ?";
+        connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
+            if (err) {      
+                console.log("에러 발생: ", err);
+                result(err, null);
+                connection.releaseConnection;
+                return;
+            }
+            else {
+                // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                console.log("상품이 갱신되었습니다: ", res);
+                result(null, res);
+                connection.releaseConnection;
+                return;
+            }
+        });
+        }
+    //가장 최근 회원의 주문 내역에서 주문 상품들 뽑아내기
+    static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
+        const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1)";
         connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
@@ -102,24 +121,26 @@ class Order {
             }
         });
         }
-        static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
-            const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1)";
-            connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
-                if (err) {
-                    console.log("에러 발생: ", err);
-                    result(err, null);
-                    connection.releaseConnection;
-                    return;
-                }
-                else {
-                    // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-                    console.log("상품이 갱신되었습니다: ", res);
-                    result(null, res);
-                    connection.releaseConnection;
-                    return;
-                }
-            });
+    //회원의 주문 내역에서 특정 조건의 주문 상품들 뽑아내기
+    static findSelectOrderList(user_id: string, order_id: string, result: (arg0: any, arg1: any) => void) {
+        const query = "SELECT `order`.*, delivery.deliveryType, delivery.delivery_date, delivery.delivery_selectedCor, delivery.delivery_message FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? AND order.order_id = ?";
+        connection.query(query, [user_id, order_id], (err: QueryError | null, res:RowDataPacket[]) => {
+            if (err) {
+                console.log("에러 발생: ", err);
+                result(err, null);
+                connection.releaseConnection;
+                return;
             }
+            else {
+                // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                console.log("주문 내역을 불러왔습니다: ", res);
+                result(null, res);
+                connection.releaseConnection;
+                return;
+            }
+        });
+        }
+    //가장 최근 회원의 주문내역 1건 뽑아내기
     static findOne(userData: any, result: (arg0: any, arg1: any) => void) {
             const query = "SELECT * FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1";
             connection.query(query, userData, (err: QueryError | null, res:RowDataPacket[]) => {
