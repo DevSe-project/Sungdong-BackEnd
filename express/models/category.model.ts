@@ -66,15 +66,16 @@ class Category {
       })
     }
     
-    static updateByParentCategoryId(parentsCategory_id: string, data: any[], result: (error: any, response: any) => void) {
-      const updateQuery = "UPDATE category SET name = ? WHERE parentsCategory_id = ? AND category_id = ?";
+    static updateByParentCategoryId(data: any[], result: (error: any, response: any) => void) {
+      const updateQuery = "UPDATE category SET name = ? WHERE category_id = ?";
       // 모든 데이터에 대해 비동기적으로 UPDATE 쿼리 실행
       Promise.all(data.map(item => {
         return new Promise((resolve, reject) => {
-          connection.query(updateQuery, [item.name, item.parentsCategory_id, item.category_id], (err: QueryError | null, res: RowDataPacket[]) => {
+          connection.query(updateQuery, [item.name, item.category_id], (err: QueryError | null, res: RowDataPacket[]) => {
             if (err) {
               reject(err);
             } else {
+              console.log(res);
               resolve(res);
             }
           });

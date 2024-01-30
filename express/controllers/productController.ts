@@ -26,7 +26,6 @@ const productController = {
           product_discount: requestData.product_discount,
           product_image_original: requestData.product_image_original,
           product_updated: rearrangedDate,
-          product_created: rearrangedDate,
           product_supply: requestData.product_supply,
           product_brand: requestData.product_brand,
           product_madeIn: requestData.product_madeIn,

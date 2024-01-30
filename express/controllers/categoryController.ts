@@ -95,7 +95,7 @@ const categoryController = {
       // 클라이언트가 보낸 JSON 데이터를 받음
       const data = await Promise.all(req.body.map((item: { category_id: string, parentsCategory_id: string | null, name: string }) => ({
         category_id: item.category_id,
-        parentsCategory_id: item.parentsCategory_id,
+        parentsCategory_id: item.parentsCategory_id !== null ? item.parentsCategory_id : null,
         name: item.name
       })));
   
@@ -118,7 +118,7 @@ const categoryController = {
               return { ...existingItem, ...updatedItem };
             });
             // 업데이트된 데이터로 데이터베이스 업데이트
-            Category.updateByParentCategoryId(data[0].parentsCategory_id, updates, (updateErr: any, updateResult: any) => {
+            Category.updateByParentCategoryId(updates, (updateErr: any, updateResult: any) => {
               if (updateErr) {
                 return res.status(500).send({ message: updateErr.message || "카테고리를 갱신하는 중 서버 오류가 발생했습니다." });
               } else {
