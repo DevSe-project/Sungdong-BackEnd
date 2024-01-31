@@ -64,27 +64,42 @@ const deliveryController = {
   },
 
   // 배송 취소
-  deleteData: async (req: Request, res: Response) => {
-    try {
-      const order_ids = req.body; // 클라이언트로부터 받은 order_id 배열
+  // deleteData: async (req: Request, res: Response) => {
+  //   try {
+  //     const fetchedData = req.body; // 클라이언트로부터 받은 order_id 배열
 
-      // 배송 데이터 삭제: 받은 order_ids 배열의 각 order_id에 대해 반복적으로 삭제 작업 수행
-      await Promise.all(order_ids.map(async (order_id: any) => {
-        const rows = await Delivery.deleteDeliveryData(order_id); // 정적 메서드 호출
-        // 삭제 결과에 따라 응답 전송
-        if (rows) {
-          console.error('해당 주문 ID에 대한 배송 데이터를 찾을 수 없습니다:', order_id);
-        }
-      }));
+  //     // 유효성 검사: 변경된 배송 상태 데이터가 유효한지 확인
+  //     if (!Array.isArray(fetchedData)) {
+  //       return res.status(400).json({ message: "잘못된 데이터 형식입니다." });
+  //     }
 
-      // 모든 삭제 작업이 완료된 후에 응답 전송
-      return res.status(200).json({ message: "배송이 성공적으로 취소되었습니다." });
-    } catch (error) {
-      console.error("배송 취소 중 오류가 발생했습니다:", error);
-      return res.status(500).json({ message: "배송 취소 중 오류가 발생했습니다." });
-    }
+  //     // 배송 데이터 삭제: 받은 order_ids 배열의 각 order_id에 대해 반복적으로 삭제 작업 수행
+  //     await Promise.all(fetchedData.map(async (item: {order_id: string}) => {
+  //       const rows = await Delivery.deleteDeliveryData(item.order_id); // 정적 메서드 호출
+  //       // 삭제 결과에 따라 응답 전송
+  //       if (rows) {
+  //         console.error('해당 주문 ID에 대한 배송 데이터를 찾을 수 없습니다:', item.order_id);
+  //       }
+  //     }));
+
+  //     // 모든 삭제 작업이 완료된 후에 응답 전송
+  //     return res.status(200).json({ message: "배송이 성공적으로 취소되었습니다." });
+  //   } catch (error) {
+  //     console.error("배송 취소 중 오류가 발생했습니다:", error);
+  //     return res.status(500).json({ message: "배송 취소 중 오류가 발생했습니다." });
+  //   }
+  // }
+  delete: async (req: Request, res: Response) => {
+    const orderIds = req.params.ids.split(',').map(Number);
+    Delivery.deleteByIds(orderIds, (err: { message: any; }) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true });
+      }
+    })
   }
-
 
 };
 

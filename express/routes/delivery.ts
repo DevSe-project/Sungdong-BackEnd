@@ -8,7 +8,8 @@ const dlRouter : Router = express.Router();
 dlRouter.get(`/deliveries`, deliveryController.deliveryAll);
 /* ---------------배송상태 변경사항 적용--------------- */
 dlRouter.put(`/state/edit`, deliveryController.applyEditedState);
-dlRouter.put(`/invoice/edit`, deliveryController.applyEditedInvoice)
+dlRouter.put(`/invoice/edit`, deliveryController.applyEditedInvoice);
+dlRouter.delete(`/deliveries/delete/:ids`, deliveryController.delete);
 
 
 export default dlRouter;

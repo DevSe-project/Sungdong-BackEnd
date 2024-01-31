@@ -20,7 +20,8 @@ class Delivery {
                 p.product_image_mini,
                 p.product_title,
                 op.optionSelected,
-                o.order_payAmount
+                p.product_price,
+                ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice
             FROM 
                 delivery d
             JOIN 
@@ -78,13 +79,33 @@ class Delivery {
     }
 
     // Remove [Delivery InquireTable] - order_id
-    static async deleteDeliveryData(order_id: number) {
-        try {
-            const rows = await this.connection.execute('DELETE FROM delivery WHERE order_id = ?', [order_id]);
-            return rows;
-        } catch (error: any) {
-            throw new Error(`삭제에 실패하였습니다. 사유: ${error.message}`);
-        }
+    // static async deleteDeliveryData(order_id: string) {
+    //     try {
+    //         const rows = await this.connection.execute(
+    //             'DELETE FROM delivery WHERE order_id = ?',
+    //             [order_id]
+    //         );
+    //         this.connection.releaseConnection;
+    //         return rows;
+    //     } catch (error: any) {
+    //         throw new Error(`삭제에 실패하였습니다. 사유: ${error.message}`);
+    //     }
+    // }
+    static deleteByIds(orderIds: number[], result: (error: any, response: any) => void) {
+        const query = "DELETE FROM delivery WHERE order_id IN (?)"
+        console.log(query)
+        console.log(orderIds)
+        this.connection.query(query, [orderIds], (err, res) => {
+            if (err) {
+                console.log(`쿼리 실행 중 에러 발생: `, err);
+                result(err, null);
+                this.connection.releaseConnection;
+            } else {
+                console.log('성공적으로 삭제 완료: ', res);
+                result(null, res);
+                this.connection.releaseConnection;
+            }
+        })
     }
 }
 
