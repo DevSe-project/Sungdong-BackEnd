@@ -320,7 +320,6 @@ class User {
                 return;
             }
             else {
-                console.log("resulkt", res)
                 if(res.length > 0){
                     console.log("확인된 코드: ", res[0].user_code); // Fix: Log the specific user_code from the result.
                     result(null, res[0]);

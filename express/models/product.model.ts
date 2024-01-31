@@ -112,6 +112,7 @@ class Product {
             executeQuery(0);
         });
     }
+    //재고 감소
     static lowSupply(newProducts: any[]): Promise<any> {
         const updateQuery = "UPDATE product SET product_supply = ? WHERE product_id = ?";
         const promises: Promise<any>[] = [];
@@ -125,6 +126,35 @@ class Product {
             } else {
                 console.log(`성공적으로 변경 완료: `, res);
                 resolve(res);
+            }
+            });
+        });
+    
+        promises.push(promise);
+        });
+    
+        return Promise.all(promises);
+    }
+    //재고 조사
+    static checkedSupply(newProducts: any[]): Promise<any> {
+        const updateQuery = "SELECT product_title, product_supply FROM product WHERE product_id = ? AND product_supply > 1";
+        const promises: Promise<any>[] = [];
+    
+        newProducts.forEach((item) => {
+        const promise = new Promise((resolve, reject) => {
+            connection.query(updateQuery, [item.product_id], (err: QueryError | null, res:any) => {
+            if (err) {
+                console.log(`쿼리 실행 중 에러 발생: `, err);
+                reject(err);
+            } else {
+                if (res && res.length > 0 && res[0].product_supply > 1) {
+                    console.log(`성공적으로 조사 완료: `, res);
+                    resolve(res);
+                } else {
+                    const errorMessage = `재고가 부족한 상품이 있어 주문이 불가합니다\n재고 부족 : ${item.product_title}`;
+                    console.log(errorMessage);
+                    reject(new Error(errorMessage));
+                }
             }
             });
         });

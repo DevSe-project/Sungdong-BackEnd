@@ -4,18 +4,18 @@ import Order from "../models/order.model";
 import jwt from 'jsonwebtoken'
 import User from "../models/users.model";
 import shortid from "shortid";
+import Product from "../models/product.model";
 const jwtSecret = 'sung_dong'
 
 
 const orderController = {
-  write: (req: Request, res: Response) => {
+  write: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token) {
       return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })
     }
     try {
       const requestData = req.body;
-      console.log(requestData)
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded;
 
@@ -26,23 +26,28 @@ const orderController = {
         product_id: item.product_id,
         category_id: item.category_id,
         parentsCategory_id: item.parentsCategory_id,
-        cart_price: item.product_price,
-        cart_discount: item.product_discount,
-        cart_cnt: item.cnt,
-        cart_amount: (item.product_price - ((item.product_price / 100) * item.product_discount)) * item.cnt,
-        cart_selectedOption: item.selectedOption
+        cart_price: item.cart_price || item.product_price,
+        cart_discount: item.cart_discount || item.product_discount,
+        cart_cnt: item.cart_cnt || item.cnt,
+        cart_selectedOption: item.cart_selectedOption || item.selectedOption
       }));
-      console.log(newProduct);
-      User.findAllUserInfo(userData, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
-        if (err) {
-          return res.status(500).send({ message: err });
-        } else {
-          req.session.orderData = newProduct;
-          res.status(200).json({ success: true, message: '해당 상품들로 주문서 작성을 시작합니다.', newProduct, data });
+      try{
+        const checkedSupply = await Product.checkedSupply(newProduct);
+        if(checkedSupply) {
+          User.findAllUserInfo(userData, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            if (err) {
+              return res.status(500).send({ message: err });
+            } else {
+              req.session.orderData = newProduct;
+              res.status(200).json({ success: true, message: '해당 상품들로 주문서 작성을 시작합니다.', newProduct, data });
+            }
+          });
         }
-      });
+      } catch(error: any) {
+        return res.status(400).json({ message: error.message });
+      }
     } catch (error) {
-      return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
+      return res.status(403).json({ message: '회원인증이 만료되어 재 로그인이 필요합니다.' });
     }
   },
   create: async (req: Request, res: Response) => {
@@ -57,9 +62,11 @@ const orderController = {
       const requestData = req.body;
       const newId = shortid();
       const orderListMap = requestData.orderList.map((item: {
+        cart_discount: number;
+        cart_price: any;
+        cart_cnt: any;
         cart_selectedOption: string;
         cart_amount: string;
-        cnt: string;
         category_id: string;
         parentsCategory_id: string;
         product_id: string;
@@ -69,8 +76,8 @@ const orderController = {
         product_id: item.product_id,
         parentsCategory_id: item.parentsCategory_id,
         category_id: item.category_id,
-        order_cnt: item.cnt,
-        order_productPrice: item.cart_amount,
+        order_cnt: item.cart_cnt,
+        order_productPrice: item.cart_price * item.cart_cnt - (((item.cart_price/100)*item.cart_discount)*item.cart_cnt),
         selectedOption: item.cart_selectedOption
       }))
       const newProduct = {
@@ -84,8 +91,8 @@ const orderController = {
           bname: requestData.orderInformation.address.bname,
           buildingName: requestData.orderInformation.address.buildingName,
           jibunAddress: requestData.orderInformation.jibunAddress ? requestData.orderInformation.jibunAddress : '',
-          order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
-            sum + ((item.cart_price * item.cnt) - ((item.cart_price / 100) * item.cart_discount) * item.cnt)
+          order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cart_cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
+            sum + ((item.cart_price * item.cart_cnt) - ((item.cart_price / 100) * item.cart_discount) * item.cart_cnt)
             , 3000),
           orderState: 1
         },

@@ -48,10 +48,9 @@ const cartController = {
           product_id : requestData.product_id,
           category_id: requestData.category_id,
           parentsCategory_id: requestData.parentsCategory_id,
-          cart_price: requestData.product_price,
-          cart_discount: requestData.product_discount,
-          cart_cnt: requestData.cnt,
-          cart_amount: (requestData.product_price - ((requestData.product_price / 100) * requestData.product_discount)) * requestData.cnt,
+          cart_price: requestData.cart_price || requestData.product_price,
+          cart_discount: requestData.cart_discount || requestData.product_discount,
+          cart_cnt: requestData.cart_cnt || requestData.cnt,
           cart_selectedOption : requestData.selectedOption
         },
     };
