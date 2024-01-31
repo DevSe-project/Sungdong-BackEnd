@@ -65,13 +65,13 @@ const cartController = {
     })
     }})
   } catch (error) {
-    return res.status(403).json({ message: '회원 인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
   }
   },  
   list : async (req : Request, res : Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
     if (!token) {
-        return res.status(401).json({msg : "token null"})
+      return res.status(401).json({message : "로그인 후 사용 가능합니다."})
     }
 
     try {
@@ -88,7 +88,7 @@ const cartController = {
         }
     })
   } catch (error) {
-    return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
   }
   },
   delete : async (req : Request, res : Response) => {
