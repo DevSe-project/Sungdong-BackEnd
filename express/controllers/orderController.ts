@@ -11,33 +11,38 @@ const orderController = {
   write: (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token) {
-        return res.status(401).json({msg : "token null"})
+      return res.status(401).json({message : "로그인 후 이용가능한 서비스입니다."})
     }
     try {
       const requestData = req.body;
+      console.log(requestData)
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded;
 
       const userData = req.user;
-
+      
+      const newProduct = requestData.map((item: any) => ({
+        ...item,
+        product_id: item.product_id,
+        category_id: item.category_id,
+        parentsCategory_id: item.parentsCategory_id,
+        cart_price: item.product_price,
+        cart_discount: item.product_discount,
+        cart_cnt: item.cnt,
+        cart_amount: (item.product_price - ((item.product_price / 100) * item.product_discount)) * item.cnt,
+        cart_selectedOption: item.selectedOption
+      }));
+      console.log(newProduct);
       User.findAllUserInfo(userData, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
         if (err) {
             return res.status(500).send({ message: err });
         } else {
-          req.session.orderData = requestData;
-          res.status(200).json({ success: true, message: '해당 상품들로 주문서 작성을 시작합니다.', requestData, data });
+          req.session.orderData = newProduct;
+          res.status(200).json({ success: true, message: '해당 상품들로 주문서 작성을 시작합니다.', newProduct, data });
         }
       });
     } catch (error) {
-      return res.status(500).json({ message: '장바구니에서 주문 작성으로 데이터를 넘기지 못했습니다.' });
-    }
-  }, 
-  read: (req: Request, res: Response) => {
-    try {
-      const orderData = req.session.orderData || {};
-      res.status(200).json({ success: true, message: '주문서 정보를 다시 불러왔습니다.', orderData });
-    } catch (error) {
-      return res.status(500).json({ message: '장바구니에서 주문 작성으로 데이터를 넘기지 못했습니다.' });
+      return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
     }
   }, 
   create: async (req: Request, res: Response) => {
@@ -100,13 +105,13 @@ const orderController = {
       }
     })
   } catch (error) {
-    return res.status(403).json({ message: '회원 인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
   }
   },  
   list : async (req : Request, res : Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
     if (!token) {
-        return res.status(401).json({msg : "token null"})
+      return res.status(401).json({message : "로그인 후 이용가능한 서비스입니다."})
     }
 
     try {
@@ -167,7 +172,7 @@ const orderController = {
         }
     })
   } catch (error) {
-    return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '인증이 만료되어 재 로그인이 필요합니다.' });
   }
   },
   findList : async (req : Request, res : Response, next: NextFunction) => {
@@ -190,7 +195,7 @@ const orderController = {
         }
     })
   } catch (error) {
-    return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
   }
   },   
   findSelectOrderList : async (req : Request, res : Response, next: NextFunction) => {
@@ -213,14 +218,14 @@ const orderController = {
         }
     })
   } catch (error) {
-    return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '회원 인증이 만료되어 로그인이 필요합니다.' });
   }
   }, 
   findOne : async (req : Request, res : Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
     if (!token) {
-        return res.status(401).json({msg : "token null"})
-    }
+      return res.status(401).json({message : "로그인 후 이용가능한 서비스입니다."})
+    } 
 
     try {
       const decoded = jwt.verify(token, jwtSecret);
@@ -237,7 +242,7 @@ const orderController = {
         }
     })
   } catch (error) {
-    return res.status(403).json({ message: '인증이 만료되었거나 로그인이 필요합니다.' });
+    return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
   }
   },
   delete : async (req : Request, res : Response) => {

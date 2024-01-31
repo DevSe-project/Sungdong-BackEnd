@@ -26,9 +26,6 @@ const authController = {
                 req.user = data;
                 res.cookie('jwt_token', token, {secure: true, sameSite: "none"});
                 res.status(200).json({ success: true, message: "로그인 되었습니다.", token });
-                // 토큰 정보를 데이터베이스에 저장
-                // User.token([data.users_id, token, new Date(Date.now() + 60 * 60 * 1000)], (err: QueryError | { kind: string; } | null) => {
-                // });
             }
         });
         } catch (err) {
@@ -138,12 +135,13 @@ const authController = {
     user : async (req : Request, res : Response) => {        
         const token = req.header('Authorization');
         if (!token) {
-            return res.status(401).json({msg : "token null"})
+            return res.status(401).json({message : "로그인 후 사용 가능합니다."})
         }
+
 
         jwt.verify(token, jwtSecret, (err, user) => {
             if (err) {
-                return res.status(403).json({msg : "Invalid Token"})
+                return res.status(403).json({message : "재 로그인이 필요합니다."})
             }
             return res.status(200).json({user : user})
         })
