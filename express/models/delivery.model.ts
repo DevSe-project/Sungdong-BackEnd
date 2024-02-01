@@ -19,7 +19,7 @@ class Delivery {
                 op.product_id,
                 p.product_image_mini,
                 p.product_title,
-                op.optionSelected,
+                op.selectedOption,
                 p.product_price,
                 ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice
             FROM 
@@ -92,21 +92,35 @@ class Delivery {
     //     }
     // }
     static deleteByIds(orderIds: number[], result: (error: any, response: any) => void) {
-        const query = "DELETE FROM delivery WHERE order_id IN (?)"
-        console.log(query)
-        console.log(orderIds)
-        this.connection.query(query, [orderIds], (err, res) => {
-            if (err) {
-                console.log(`쿼리 실행 중 에러 발생: `, err);
-                result(err, null);
+        const deliveryQuery = "DELETE FROM delivery WHERE order_id IN (?)";
+        const orderQuery = "DELETE FROM order WHERE order_id IN (?)";
+
+        console.log("Delivery Query:", deliveryQuery);
+        console.log("Order Query:", orderQuery);
+        console.log("Order IDs:", orderIds);
+
+        this.connection.query(deliveryQuery, [orderIds], (errDelivery, resDelivery) => {
+            if (errDelivery) {
+                console.log(`쿼리 실행 중 에러 발생 (delivery 테이블):`, errDelivery);
+                result(errDelivery, null);
                 this.connection.releaseConnection;
             } else {
-                console.log('성공적으로 삭제 완료: ', res);
-                result(null, res);
-                this.connection.releaseConnection;
+                console.log('delivery 테이블에서 성공적으로 삭제 완료:', resDelivery);
+                this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
+                    if (errOrder) {
+                        console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
+                        result(errOrder, null);
+                        this.connection.releaseConnection;
+                    } else {
+                        console.log('order 테이블에서 성공적으로 삭제 완료:', resOrder);
+                        result(null, { delivery: resDelivery, order: resOrder });
+                        this.connection.releaseConnection;
+                    }
+                });
             }
-        })
+        });
     }
+
 }
 
 export default Delivery;
