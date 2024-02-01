@@ -129,10 +129,12 @@ const productController = {
   },
   supplyLow : async (req : Request, res : Response) => {
     const requestData = req.body.map((item: {
-      cnt: string; product_id: any; product_supply: string; 
+      cart_cnt: string;
+      product_id: any; 
+      product_supply: string; 
     }) => ({
       product_id: item.product_id,
-      product_supply: parseInt(item.product_supply) - parseInt(item.cnt)
+      product_supply: parseInt(item.product_supply) - parseInt(item.cart_cnt)
     }));
     Product.lowSupply(requestData)
     .then((result) => {

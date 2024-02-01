@@ -247,15 +247,17 @@ const authController = {
         });
     },
     checkCode : async (req : Request, res : Response) => {  
-        const code = {
-            user_code: req.body.user_code
-        }
-        User.checkCode(code, (err: QueryError | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+        const code = req.body.user_code
+        User.checkCode(code, (err: QueryError | Error | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err });
             } else {
-                res.cookie('register_code', code, {secure: true, sameSite: "none"});
-                return res.status(200).json({ message: '인증 되었습니다.', success: true, result });
+                if(result === null){
+                    return res.status(400).json({ message: "일치하는 코드가 없습니다. 인증에 실패하였습니다.", success: false});
+                } else {
+                    res.cookie('register_code', code, {secure: true, sameSite: "none"});
+                    return res.status(200).json({ message: '인증 되었습니다.', success: true, result });
+                }
             }
         });
     },

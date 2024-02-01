@@ -311,17 +311,25 @@ class User {
         });
     }
     //코드 검사
-    static checkCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => any) {
-        connection.query('SELECT user_code FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
+    static checkCode(code: any, result: (err: QueryError | Error | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => any) {
+        connection.query('SELECT user_code FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: any) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
                 connection.releaseConnection;
                 return;
             }
-            console.log("확인된 코드: ", code);
-            result(null, res[0]);
-            connection.releaseConnection;
+            else {
+                if(res.length > 0){
+                    console.log("확인된 코드: ", res[0].user_code); // Fix: Log the specific user_code from the result.
+                    result(null, res[0]);
+                }
+                else {
+                    console.log("일치하는 코드가 없습니다.");
+                    result(null, null);
+                }
+                connection.releaseConnection;
+            }
         });
     }
     //코드 삭제
