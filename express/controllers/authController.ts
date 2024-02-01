@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid'
-import User from "../models/users.model";
+import User from "../models/auth.model";
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import shortid from "shortid";
 

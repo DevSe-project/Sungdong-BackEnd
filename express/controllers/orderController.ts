@@ -2,7 +2,7 @@ import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import { NextFunction, Request, Response } from "express"
 import Order from "../models/order.model";
 import jwt from 'jsonwebtoken'
-import User from "../models/users.model";
+import User from "../models/auth.model";
 import shortid from "shortid";
 import Product from "../models/product.model";
 const jwtSecret = 'sung_dong'
