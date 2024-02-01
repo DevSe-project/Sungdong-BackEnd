@@ -163,8 +163,8 @@ class User {
     }
 
     // user 생성 id로 조회
-    static findByID(userID: any, result: (arg0: { kind: string; } | QueryError | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
-        connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+    static findByID(userID: any, result: (arg0: Error | QueryError | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+        connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: Error | QueryError | null, res: any) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -172,14 +172,18 @@ class User {
                 return;
             }
 
-            if (res.length) {
-                console.log("다음 회원을 찾았습니다: ", res[0]);
-                result(null, res[0]);
+            if (res.length > 0) {
+                console.log("중복된 아이디입니다: ", res[0]);
+                const errorMessage = `중복된 아이디 입니다 : ${res[0].userId}`
+                result(new Error(errorMessage), res[0].userId);
                 connection.releaseConnection;
                 return;
             }
-            // 결과가 없을 시 
-            result({ kind: "not_found" }, null);
+            else{
+                console.log("사용 가능한 아이디입니다", null);
+                // 결과가 없을 시 
+                result(null, null);
+            }
             connection.releaseConnection;
         });
     }
