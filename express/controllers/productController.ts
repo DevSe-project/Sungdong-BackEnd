@@ -176,7 +176,8 @@ const productController = {
       if (req.file) {
           const imageUrl = `http://localhost:5050/${req.file.filename}`;
           const fileName = req.file.filename;
-          return res.json({ imageUrl });
+          console.log(imageUrl);
+          return res.json({ imageUrl, fileName });
       }      
     });
   }
