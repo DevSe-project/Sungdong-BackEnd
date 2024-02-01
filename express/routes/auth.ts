@@ -8,6 +8,7 @@ const authRouter : Router = express.Router()
 authRouter.post("/login", authController.login);
 authRouter.post("/logout", authController.logout);
 authRouter.post("/register", authController.register);
+authRouter.post("/duplicate", authController.isDuplicateById);
 // 아이디 - 비번 찾기
 authRouter.post("/findId", authController.findId);
 authRouter.post("/findPw", authController.findPw);
