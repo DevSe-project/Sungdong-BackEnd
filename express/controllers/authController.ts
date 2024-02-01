@@ -8,38 +8,40 @@ import shortid from "shortid";
 const jwtSecret = 'sung_dong'
 
 const authController = {
-    login : async (req : Request, res : Response) => {
+    // 로그인
+    login: async (req: Request, res: Response) => {
         const loadUser = req.body;
 
         try {
-        User.login(loadUser, (err : QueryError | Error | null, data: {users_id: number, userId: any, userPassword: any, userType_id: number} | null) => {
-            if(err){
-                console.error(err);
-                return res.status(400).send({ message: err.message || "아이디 및 비밀번호를 확인해주세요!" });
-            }
-            if (data !== null) {
-                const token = jwt.sign({
-                userType_id: data.userType_id,
-                users_id: data.users_id
-                }, jwtSecret, { expiresIn: '1h' });
-        
-                req.user = data;
-                res.cookie('jwt_token', token, {secure: true, sameSite: "none"});
-                res.status(200).json({ success: true, message: "로그인 되었습니다.", token });
-            }
-        });
+            User.login(loadUser, (err: QueryError | Error | null, data: { users_id: number, userId: any, userPassword: any, userType_id: number } | null) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(400).send({ message: err.message || "아이디 및 비밀번호를 확인해주세요!" });
+                }
+                if (data !== null) {
+                    const token = jwt.sign({
+                        userType_id: data.userType_id,
+                        users_id: data.users_id
+                    }, jwtSecret, { expiresIn: '1h' });
+
+                    req.user = data;
+                    res.cookie('jwt_token', token, { secure: true, sameSite: "none" });
+                    res.status(200).json({ success: true, message: "로그인 되었습니다.", token });
+                }
+            });
         } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "서버 오류 발생" });
+            console.error(err);
+            res.status(500).json({ success: false, message: "서버 오류 발생" });
         }
     },
+    // 로그아웃
     logout: async (req: Request, res: Response) => {
-        res.clearCookie('jwt_token', {secure: true, sameSite: 'none'});
-        res.send({ success: true, message: "로그아웃 되었습니다."});
+        res.clearCookie('jwt_token', { secure: true, sameSite: 'none' });
+        res.send({ success: true, message: "로그아웃 되었습니다." });
     },
-
-    register : async (req : Request, res : Response) => {
-        if(!req.body){
+    // 가입 조건 확인(내용 충족)
+    register: async (req: Request, res: Response) => {
+        if (!req.body) {
             res.status(400).send({
                 message: "내용을 채워주세요!"
             });
@@ -91,16 +93,16 @@ const authController = {
         };
 
         // 데이터베이스에 저장
-        User.create(newUser, (err: { message: any; }) =>{
+        User.create(newUser, (err: { message: any; }) => {
             const code = req.cookies.register_code;
-            if(err)
+            if (err)
                 return res.status(500).send({ message: err.message || "유저 정보를 갱신하는 중 서버 오류가 발생했습니다." });
             else {
                 User.removeCode(code, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
                     if (err) {
                         return res.status(500).send({ message: err });
                     } else {
-                        res.clearCookie('register_code', {secure: true, sameSite: 'none'});
+                        res.clearCookie('register_code', { secure: true, sameSite: 'none' });
                         return res.status(200).json({ message: '성공적으로 회원가입이 완료되었습니다.', success: true });
                     }
                 });
@@ -109,47 +111,47 @@ const authController = {
     },
 
     // 마이페이지
-    info : async (req : Request, res : Response) => {   
+    info: async (req: Request, res: Response) => {
         const token = req.cookies.jwt_token;
         if (!token) {
-            return res.status(401).json({message : "로그인 후 사용 가능합니다."})
+            return res.status(401).json({ message: "로그인 후 사용 가능합니다." })
         }
 
         jwt.verify(token, jwtSecret, (err: any, user: any) => {
             if (err) {
-                return res.status(403).json({message : "재 로그인이 필요합니다."})
+                return res.status(403).json({ message: "재 로그인이 필요합니다." })
             }
             else {
                 User.findAllUserInfo(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
-                if (err) {
-                    return res.status(500).send({ message: err });
-                } else {
-                    return res.status(200).json({ message: '인증이 완료되었습니다.', success: true, data });
-                }
+                    if (err) {
+                        return res.status(500).send({ message: err });
+                    } else {
+                        return res.status(200).json({ message: '인증이 완료되었습니다.', success: true, data });
+                    }
                 });
             }
         })
     },
     /*---------------------------- 토큰 검증 -------------------------------*/
 
-    user : async (req : Request, res : Response) => {        
+    user: async (req: Request, res: Response) => {
         const token = req.header('Authorization');
         if (!token) {
-            return res.status(401).json({message : "로그인 후 사용 가능합니다."})
+            return res.status(401).json({ message: "로그인 후 사용 가능합니다." })
         }
 
 
         jwt.verify(token, jwtSecret, (err, user) => {
             if (err) {
-                return res.status(403).json({message : "재 로그인이 필요합니다."})
+                return res.status(403).json({ message: "재 로그인이 필요합니다." })
             }
-            return res.status(200).json({user : user})
+            return res.status(200).json({ user: user })
         })
     },
 
     /*---------------------------- 유저 정보 조회 관련 ------------------------------*/
-    findId : async (req : Request, res : Response) => {    
-        if(!req.body){
+    findId: async (req: Request, res: Response) => {
+        if (!req.body) {
             res.status(400).send({
                 message: "내용을 채워주세요!"
             });
@@ -166,8 +168,8 @@ const authController = {
             }
         });
     },
-    findPw : async (req : Request, res : Response) => {    
-        if(!req.body){
+    findPw: async (req: Request, res: Response) => {
+        if (!req.body) {
             res.status(400).send({
                 message: "내용을 채워주세요!"
             });
@@ -184,7 +186,7 @@ const authController = {
             }
         });
     },
-    userAll : async (req : Request, res : Response) => {    
+    userAll: async (req: Request, res: Response) => {
         User.getAll((err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err });
@@ -193,12 +195,12 @@ const authController = {
             }
         });
     },
-    userFilter : async (req : Request, res : Response) => {    
+    userFilter: async (req: Request, res: Response) => {
         const filter = {
             cor_corName: req.body.cor_corName,
             cor_ceoName: req.body.cor_ceoName,
             cor_num: req.body.cor_num,
-            userType_id: req.body. userType_id,
+            userType_id: req.body.userType_id,
             grade: req.body.grade
         }
         User.filteredUser(filter, (err: QueryError | Error | null, data: RowDataPacket[] | null) => {
@@ -209,7 +211,7 @@ const authController = {
             }
         });
     },
-    userSort : async (req : Request, res : Response) => {    
+    userSort: async (req: Request, res: Response) => {
         const filter = {
             first: req.body.first,
             second: req.body.second,
@@ -225,7 +227,7 @@ const authController = {
     },
 
     /*----------------------------------코드 관련-------------------------------------*/
-    getAllCode : async (req : Request, res : Response) => {    
+    getAllCode: async (req: Request, res: Response) => {
         User.getAllCode((err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err });
@@ -234,10 +236,10 @@ const authController = {
             }
         });
     },
-    generateCode : async (req : Request, res : Response) => {  
+    generateCode: async (req: Request, res: Response) => {
         const setCode = {
             user_code: shortid.generate()
-        }  
+        }
         User.generateCode(setCode, (err: QueryError | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err });
@@ -246,16 +248,16 @@ const authController = {
             }
         });
     },
-    checkCode : async (req : Request, res : Response) => {  
+    checkCode: async (req: Request, res: Response) => {
         const code = req.body.user_code
         User.checkCode(code, (err: QueryError | Error | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err });
             } else {
-                if(result === null){
-                    return res.status(400).json({ message: "일치하는 코드가 없습니다. 인증에 실패하였습니다.", success: false});
+                if (result === null) {
+                    return res.status(400).json({ message: "일치하는 코드가 없습니다. 인증에 실패하였습니다.", success: false });
                 } else {
-                    res.cookie('register_code', code, {secure: true, sameSite: "none"});
+                    res.cookie('register_code', code, { secure: true, sameSite: "none" });
                     return res.status(200).json({ message: '인증 되었습니다.', success: true, result });
                 }
             }
