@@ -338,7 +338,7 @@ class User {
     }
     //코드 삭제
     static removeCode(code: any, result: (arg0: QueryError | null, arg1: any) => void) {
-        connection.query('DELETE FROM users_code WHERE user_code = ?', code.user_code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+        connection.query('DELETE FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
             if (err) {
                 console.log("error: ", err);
                 result(err, null);
