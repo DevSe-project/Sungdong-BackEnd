@@ -84,24 +84,49 @@ class Order {
         executeQuery(0); // Start with the first query
         });
     }
-    static list(user_id: string, result: (arg0: any, arg1: any) => void) {
-        const query = "SELECT order.order_id, order.users_id, order.order_date, order.orderState, order_product.order_productPrice, order_product.selectedOption, order_product.order_cnt, product.product_spec, product.product_title, product.product_image_original, delivery.delivery_date, delivery.delivery_selectedCor, delivery.deliveryType, delivery.delivery_num FROM `order` JOIN order_product ON `order`.order_id = order_product.order_id JOIN product ON product.product_id = order_product.product_id JOIN delivery ON delivery.order_id = order.order_id WHERE `order`.users_id = ?";
-        connection.query(query, user_id, (err: QueryError | null, res:RowDataPacket[]) => {
-            if (err) {      
-                console.log("에러 발생: ", err);
-                result(err, null);
+    static list(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+        const offset = (currentPage - 1) * postsPerPage;
+        const limit = postsPerPage;      
+        // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+        const query = "SELECT orders.order_id, orders.users_id, orders.order_date, orders.orderState, IFNULL(delivery.delivery_date, '') AS delivery_date, IFNULL(delivery.delivery_selectedCor,'') AS delivery_selectedCor, delivery.deliveryType, IFNULL(delivery.delivery_num, '') AS delivery_num, GROUP_CONCAT(JSON_OBJECT(\'order_productPrice\', order_product.order_productPrice,\'selectedOption\', IFNULL(order_product.selectedOption, ''), \'order_cnt\', order_product.order_cnt,\'product_spec\', IFNULL(product.product_spec,'') ,\'product_title\', product.product_title, \'product_image_original\', IFNULL(product.product_image_original, '') )) AS products FROM `order` AS orders JOIN order_product ON orders.order_id = order_product.order_id JOIN product ON product.product_id = order_product.product_id JOIN delivery ON delivery.order_id = orders.order_id WHERE orders.users_id = ? GROUP BY orders.order_id, orders.users_id, orders.order_date, orders.orderState, IFNULL(delivery.delivery_selectedCor,''), delivery.deliveryType, IFNULL(delivery.delivery_num,''), IFNULL(delivery.delivery_date,'') ORDER BY orders.order_date DESC LIMIT ?, ?";
+          // 전체 데이터 크기 확인을 위한 쿼리
+        const countQuery = "SELECT COUNT(*) as totalRows FROM `order` WHERE users_id = ?";
+        connection.query(countQuery, [user_id], (countErr, countResult: any) => {
+            if (countErr) {
+                result(countErr, null);
                 connection.releaseConnection;
                 return;
             }
-            else {
-                // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-                console.log("상품이 갱신되었습니다: ", res);
-                result(null, res);
-                connection.releaseConnection;
-                return;
-            }
-        });
-        }
+            const totalRows = countResult[0].totalRows;
+            connection.query(query, [user_id, offset, limit], (err: QueryError | null, res:RowDataPacket[]) => {
+                if (err) {      
+                    console.log(err)
+                    result(err, null);
+                    connection.releaseConnection;
+                    return;
+                }
+                else {
+                    const totalPages = Math.ceil(totalRows / postsPerPage);
+                    // const newData = res.map((item:any) => {
+                    // const productsArray = JSON.parse(item.products);
+                    // return { ...item, products: productsArray };
+                    // });
+                    console.log(res)
+                    
+                    const responseData = {
+                        data: res,
+                        currentPage: currentPage,
+                        totalPages: totalPages,
+                    }
+                    // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                    console.log("상품이 갱신되었습니다: ", responseData);
+                    result(null, responseData);
+                    connection.releaseConnection;
+                    return;
+                }
+            });
+        })
+    }
     //가장 최근 회원의 주문 내역에서 주문 상품들 뽑아내기
     static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
         const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1)";
@@ -149,8 +174,8 @@ class Order {
                         console.log("에러 발생: ", err);
                         result(err, null);
                     } else {
-                        console.log("해당 유저의 가장 마지막 주문을 불렀습니다.: ", res);
-                        result(null, res);
+                        console.log("해당 유저의 가장 마지막 주문을 불렀습니다.: ", res[0]);
+                        result(null, res[0]);
                     }
                 } finally {
                     connection.releaseConnection; // Release the connection in a finally block
