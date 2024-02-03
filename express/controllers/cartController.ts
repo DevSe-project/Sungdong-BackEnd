@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 
 const jwtSecret = 'sung_dong'
 
+const postsPerPage = 5;
 
 const cartController = {
   create: async (req: Request, res: Response, next: NextFunction) => {
@@ -69,6 +70,7 @@ const cartController = {
   },  
   list : async (req : Request, res : Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
+    const currentPage = req.query.page || 1;
     if (!token) {
       return res.status(401).json({message : "로그인 후 사용 가능합니다."})
     }
@@ -78,7 +80,7 @@ const cartController = {
       req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
       const requestData = req.user;
     // 데이터베이스에서 불러오기
-    Cart.list(requestData.users_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+    Cart.list(requestData.users_id, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
         // 클라이언트에서 보낸 JSON 데이터를 받음
         if(err)
           return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
