@@ -78,19 +78,6 @@ class Delivery {
         }
     }
 
-    // Remove [Delivery InquireTable] - order_id
-    // static async deleteDeliveryData(order_id: string) {
-    //     try {
-    //         const rows = await this.connection.execute(
-    //             'DELETE FROM delivery WHERE order_id = ?',
-    //             [order_id]
-    //         );
-    //         this.connection.releaseConnection;
-    //         return rows;
-    //     } catch (error: any) {
-    //         throw new Error(`삭제에 실패하였습니다. 사유: ${error.message}`);
-    //     }
-    // }
     static deleteByIds(orderIds: number[], result: (error: any, response: any) => void) {
         const deliveryQuery = "DELETE FROM delivery WHERE order_id IN (?)";
         const orderQuery = "DELETE FROM order WHERE order_id IN (?)";
