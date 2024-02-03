@@ -68,7 +68,7 @@ const cartController = {
     return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
   }
   },  
-  list : async (req : Request, res : Response, next: NextFunction) => {
+  list : async (req : Request, res : Response) => {
     const token = req.cookies.jwt_token;
     const currentPage = req.query.page || 1;
     if (!token) {
