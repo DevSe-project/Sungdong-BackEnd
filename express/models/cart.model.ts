@@ -8,6 +8,7 @@ const performTransaction = db.performTransaction;
 class Cart {
     // category 튜플 추가
     static create(newProduct:any, result: (arg0: any, arg1: any) => void) {
+        console.log(newProduct);
         performTransaction((connection: PoolConnection) => {
             const queries = [
                 "UPDATE cart SET ? WHERE users_id = ?",
@@ -16,6 +17,37 @@ class Cart {
             const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
             function executeQuery(queryIndex: number) {
             if (queryIndex < queries.length) {
+                const query = queries[queryIndex];
+    
+                // 2번째 쿼리만 객체의 개수만큼 반복하기 위한 조건
+                if (queryIndex === 1 && newProduct[0].product2 && newProduct[0].product2.length > 0) {
+                    // 2번째 쿼리가 모두 수행될 때 넘기도록 Promise화
+                    const promises = newProduct[0].product2.map((item: any) => {
+                    return new Promise((resolve, reject) => {
+                        connection.query(query, [item, newProduct[1]], (err, res) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(res);
+                        }
+                        });
+                    });
+                    });
+        
+                    // 2번째 쿼리가 전부 수행되면 푸시 & 커밋
+                    Promise.all(promises)
+                    .then((resArray) => {
+                        results.push(resArray);
+                        executeQuery(queryIndex + 1); // Proceed to the next query
+                    })
+                    .catch((err) => {
+                        console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                        connection.rollback(() => {
+                        result(err, null);
+                        connection.release();
+                        });
+                    });
+                } else {
                 connection.query(queries[queryIndex], [newProduct[0][`product${queryIndex + 1}`], newProduct[1]], (err, res) => {
     
                 if (err) {
@@ -30,6 +62,7 @@ class Cart {
                     executeQuery(queryIndex + 1);
                 }
             });
+            }
             } else {
             connection.commit((commitErr) => {
             if (commitErr) {
@@ -168,8 +201,6 @@ class Cart {
     }
     static deleteByIds(product: number[], result: (error: any, response: any) => void) {
     const query = "DELETE FROM cart_product WHERE cart_product_id IN (?)"
-    console.log(query)
-    console.log(product)
             connection.query(query, [product], (err, res) => {
             if (err) {
                 console.log(`쿼리 실행 중 에러 발생: `, err);
