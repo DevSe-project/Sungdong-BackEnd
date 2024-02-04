@@ -9,14 +9,26 @@ const searchController = {
     const currentPage = req.query.page || 1;
     const postsPerPage = req.query.post || 5;
     const requestData = req.body;
-    const searchTerm = {
-      product_id: requestData.product_id ? requestData.product_id : '',
-      product_title: requestData.product_title ? requestData.product_title : '',
-      product_brand: requestData.product_brand ? requestData.product_brand : '',
-      product_spec: requestData.product_spec ? requestData.product_spec : '',
-      product_model: requestData.product_model ? requestData.product_model : '',
+
+    let searchTerm;
+
+    if (Array.isArray(requestData) && requestData.length > 0) {
+      searchTerm = [{
+          product_id: requestData[0]?.product_id || '',
+          product_title: requestData[0]?.product_title || '',
+          product_brand: requestData[0]?.product_brand || '',
+          product_spec: requestData[0]?.product_spec || '',
+          product_model: requestData[0]?.product_model || '',
+      }];
+    } else {
+      searchTerm = {
+        product_id: requestData.search || '',
+        product_title: requestData.search || '',
+        product_brand: requestData.search || '',
+        product_spec: requestData.search || '',
+        product_model: requestData.search || '',
+      }
     }
-    // 데이터베이스에서 불러오기
     Search.list(searchTerm, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
         // 클라이언트에서 보낸 JSON 데이터를 받음
         if(err)

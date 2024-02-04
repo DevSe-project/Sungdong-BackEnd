@@ -25,16 +25,21 @@ class Search {
         const buildQuery = (isCount: boolean) => {
             const baseQuery = "SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id";
             const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
-            const condition = "WHERE product.product_id LIKE ? AND product.product_title LIKE ? AND product.product_brand LIKE ? AND product.product_spec LIKE ? AND product.product_model LIKE ?";
+            const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
+            const conditionSingle = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")}`;
+            const conditionObject = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")}`;
             const orderBy = "ORDER BY product.product_id DESC";
             const limitClause = "LIMIT ?, ?";
-            return `${isCount ? countBaseQuery : baseQuery} ${condition} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
+            return `${isCount ? countBaseQuery : baseQuery} ${Array.isArray(reqData) ? conditionObject : conditionSingle} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
         };
     
         const query = buildQuery(false);
         const countQuery = buildQuery(true);
+
+        const searchTerm = Array.isArray(reqData) ? reqData[0] : reqData;
+
     
-        connection.query(countQuery, [`%${reqData.product_id}%`,`%${reqData.product_title}%`,`%${reqData.product_brand}%`,`%${reqData.product_spec}%`,`%${reqData.product_model}%`], (countErr, countResult: any) => {
+        connection.query(countQuery, [`%${searchTerm.product_id}%`,`%${searchTerm.product_title}%`,`%${searchTerm.product_brand}%`,`%${searchTerm.product_spec}%`,`%${searchTerm.product_model}%`], (countErr, countResult: any) => {
             if (countErr) {
                 console.log(countErr);
                 result(countErr, null);
@@ -44,7 +49,7 @@ class Search {
 
             const totalRows = countResult[0].totalRows;
     
-            connection.query(query, [`%${reqData.product_id}%`,`%${reqData.product_title}%`,`%${reqData.product_brand}%`,`%${reqData.product_spec}%`,`%${reqData.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+            connection.query(query, [`%${searchTerm.product_id}%`,`%${searchTerm.product_title}%`,`%${searchTerm.product_brand}%`,`%${searchTerm.product_spec}%`,`%${searchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -58,6 +63,7 @@ class Search {
                     data: res,
                     currentPage: currentPage,
                     totalPages: totalPages,
+                    postsPerPage: postsPerPage
                 }
                 console.log("상품이 갱신되었습니다: ", responseData);
                 result(null, responseData);
