@@ -12,7 +12,7 @@ class Search {
         const postsPerPageNumber = parseInt(postsPerPage, 10) || 5;
     
         if (isNaN(currentPageNumber) || isNaN(postsPerPageNumber)) {
-            const error = new Error("Invalid numeric values for currentPage or postsPerPage");
+            const error = new Error("현재페이지의 숫자나 표시 개수가 형식이 숫자가 아닙니다.");
             console.log(error);
             result(error, null);
             connection.releaseConnection;
@@ -24,26 +24,27 @@ class Search {
 
         const buildQuery = (isCount: boolean) => {
             const baseQuery = "SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id";
-            const condition = reqData ? "WHERE product.product_id = ?" : '';
+            const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
+            const condition = "WHERE product.product_id LIKE ? AND product.product_title LIKE ? AND product.product_brand LIKE ? AND product.product_spec LIKE ? AND product.product_model LIKE ?";
             const orderBy = "ORDER BY product.product_id DESC";
             const limitClause = "LIMIT ?, ?";
-            return `${baseQuery} ${condition} ${orderBy} ${isCount ? "" : limitClause}`;
+            return `${isCount ? countBaseQuery : baseQuery} ${condition} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
         };
     
         const query = buildQuery(false);
         const countQuery = buildQuery(true);
     
-        connection.query(countQuery, reqData ? [reqData] : null, (countErr, countResult: any) => {
+        connection.query(countQuery, [`%${reqData.product_id}%`,`%${reqData.product_title}%`,`%${reqData.product_brand}%`,`%${reqData.product_spec}%`,`%${reqData.product_model}%`], (countErr, countResult: any) => {
             if (countErr) {
                 console.log(countErr);
                 result(countErr, null);
                 connection.releaseConnection;
                 return;
-            }
-    
+            }    
+
             const totalRows = countResult[0].totalRows;
     
-            connection.query(query, reqData ? [reqData, offset, limit] : [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+            connection.query(query, [`%${reqData.product_id}%`,`%${reqData.product_title}%`,`%${reqData.product_brand}%`,`%${reqData.product_spec}%`,`%${reqData.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
             if (err) {
                 console.log("에러 발생: ", err);
                 result(err, null);
@@ -51,7 +52,8 @@ class Search {
                 return;
             }
             else {
-                const totalPages = Math.ceil(totalRows / postsPerPage) || 1;
+                const totalPages = Math.ceil(totalRows / postsPerPage);
+                console.log("Total Pages:", totalPages); // Add this line to check the value
                 const responseData = {
                     data: res,
                     currentPage: currentPage,
