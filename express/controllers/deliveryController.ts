@@ -1,17 +1,25 @@
 import { Request, Response } from "express";
+import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import Delivery from "../models/delivery.model";
 
 const deliveryController = {
   // 모든 배송 데이터 조회
-  deliveryAll: (req: Request, res: Response) => {
-    Delivery.getAllDeliveries((error, results) => {
-      if (error) {
-        console.error(error);
-        return res.status(500).json({ message: error });
+  deliveryAll: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
+    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 20; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
+
+    // 데이터베이스에서 불러오기
+    Delivery.getDeliveries(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
       }
-      return res.status(200).json(results);
-    });
+    })
   },
+
+
 
   // 배송상태 변경사항 적용
   applyEditedState: async (req: Request, res: Response) => {
@@ -50,8 +58,8 @@ const deliveryController = {
       }
 
       // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
-      await Promise.all(fetchedData.map(async (item: { order_id: string, delivery_selectedCor: string, delivery_invoiceNumber: string }) => {
-        await Delivery.updateDeliveryInvoice(item.order_id, item.delivery_selectedCor, item.delivery_invoiceNumber);
+      await Promise.all(fetchedData.map(async (item: { order_id: string, delivery_selectedCor: string, delivery_num: string }) => {
+        await Delivery.updateDeliveryInvoice(item.order_id, item.delivery_selectedCor, item.delivery_num);
       }));
 
       // 응답 전송: 업데이트 성공
