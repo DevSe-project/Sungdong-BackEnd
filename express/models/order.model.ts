@@ -107,11 +107,6 @@ class Order {
                 }
                 else {
                     const totalPages = Math.ceil(totalRows / postsPerPage);
-                    // const newData = res.map((item:any) => {
-                    // const productsArray = JSON.parse(item.products);
-                    // return { ...item, products: productsArray };
-                    // });
-                    console.log(res)
                     
                     const responseData = {
                         data: res,
