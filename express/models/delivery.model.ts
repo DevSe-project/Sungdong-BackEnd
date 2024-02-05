@@ -6,7 +6,7 @@ class Delivery {
   static connection = db.getConnection();
 
   // 배송리스트 조회(전체) : JOIN(order | product | delivery)
-  static async getDeliveries(currentPage: number, itemsPerPage: number, result: (arg0: any, arg1: any) => void) {
+  static getDeliveries(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
     const query = `
@@ -45,10 +45,10 @@ class Delivery {
       JOIN 
         product p ON op.product_id = p.product_id
     `;
-    this.connection.query(countQuery, (countErr, countResult: any) => {
-      if (countErr) {
-        result(countErr, null);
-        this.connection.releaseConnection;
+
+    this.connection.query(countQuery, (err, countResult: any) => {
+      if (err) {
+        result(err, null);
         return;
       }
       const totalRows = countResult[0].totalRows
@@ -56,7 +56,6 @@ class Delivery {
         if (err) {
           console.log("에러 발생: ", err);
           result(err, null);
-          this.connection.releaseConnection;
           return;
         } else {
           const totalPages = Math.ceil(totalRows / itemsPerPage);
@@ -68,12 +67,11 @@ class Delivery {
           // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
           console.log("상품이 갱신되었습니다: ", responseData);
           result(null, responseData);
-          this.connection.releaseConnection;
-          return;
         }
       });
-    })
+    });
   };
+
 
 
 

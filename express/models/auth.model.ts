@@ -211,6 +211,51 @@ class User {
     });
   }
 
+  // 페이지와 포스팅 개수에 따른 user 조회
+  static getFindUserIfCondition(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+    const offset = (currentPage - 1) * itemsPerPage;
+    const limit = itemsPerPage;
+    const query = `
+        SELECT *
+        FROM users u
+        JOIN users_info ui ON u.users_id = ui.users_id
+        JOIN users_address ua ON ui.users_id = ua.users_id
+        JOIN users_corInfo uc ON ua.users_id = uc.users_id
+        LIMIT ?, ?
+      `
+    const countQuery = `
+        SELECT COUNT(*) as totalRows 
+        FROM users u
+        JOIN users_info ui ON u.users_id = ui.users_id
+        JOIN users_address ua ON ui.users_id = ua.users_id
+        JOIN users_corInfo uc ON ua.users_id = uc.users_id
+      `
+      connection.query(countQuery, (err, countResult: any) => {
+        if (err) {
+          result(err, null);
+          return;
+        }
+        const totalRows = countResult[0].totalRows
+        connection.query(query, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+          if (err) {
+            console.log("에러 발생: ", err);
+            result(err, null);
+            return;
+          } else {
+            const totalPages = Math.ceil(totalRows / itemsPerPage);
+            const responseData = {
+              data: res,
+              currentPage: currentPage,
+              totalPages: totalPages,
+            }
+            // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+            console.log("상품이 갱신되었습니다: ", responseData);
+            result(null, responseData);
+          }
+        });
+      });
+  }
+
   // 특정 user 조회 - 필터링
   static filteredUser(user: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
     const query = `SELECT * FROM users USER 

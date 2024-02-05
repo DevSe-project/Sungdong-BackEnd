@@ -6,7 +6,7 @@ const deliveryController = {
   // 모든 배송 데이터 조회
   deliveryAll: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
-    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 20; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
+    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
 
     // 데이터베이스에서 불러오기
     Delivery.getDeliveries(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {

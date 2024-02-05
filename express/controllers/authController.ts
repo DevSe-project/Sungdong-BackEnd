@@ -210,6 +210,19 @@ const authController = {
       }
     });
   },
+  userAllOfPage: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string, 10) || 1;
+    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
+
+    User.getFindUserIfCondition(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
+      }
+    })
+  },
   userFilter: async (req: Request, res: Response) => {
     const filter = {
       cor_corName: req.body.cor_corName,

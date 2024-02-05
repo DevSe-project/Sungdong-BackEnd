@@ -16,7 +16,7 @@ authRouter.post("/findPw", authController.findPw);
 authRouter.get("/info", authController.info);
 
 /*------------------ 회원 관리--------------------*/
-authRouter.get("/userAll", authController.userAll);
+authRouter.get("/userAllOfPage", authController.userAllOfPage);
 authRouter.post("/userFilter", authController.userFilter);
 authRouter.post("/userSort", authController.userSort);
 authRouter.post("/userDelete", authController.userDel);
