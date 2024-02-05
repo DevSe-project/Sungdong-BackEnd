@@ -2,7 +2,7 @@
 import express, { Router } from 'express';
 import deliveryController from '../controllers/deliveryController';
 
-const dlRouter : Router = express.Router();
+const dlRouter: Router = express.Router();
 
 /* --------------------배송 조회-------------------- */
 dlRouter.get(`/all`, deliveryController.deliveryAll);

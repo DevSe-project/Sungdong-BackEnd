@@ -33,9 +33,9 @@ const orderController = {
         cart_cnt: item.cart_cnt || item.cnt,
         cart_selectedOption: item.cart_selectedOption || item.selectedOption
       }));
-      try{
+      try {
         const checkedSupply = await Product.checkedSupply(newProduct);
-        if(checkedSupply) {
+        if (checkedSupply) {
           User.findAllUserInfo(userData, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
             if (err) {
               return res.status(500).send({ message: err });
@@ -45,7 +45,7 @@ const orderController = {
             }
           });
         }
-      } catch(error: any) {
+      } catch (error: any) {
         return res.status(400).json({ message: error.message, success: false });
       }
     } catch (error) {
@@ -79,7 +79,7 @@ const orderController = {
         parentsCategory_id: item.parentsCategory_id,
         category_id: item.category_id,
         order_cnt: item.cart_cnt,
-        order_productPrice: item.cart_price * item.cart_cnt - (((item.cart_price/100)*item.cart_discount)*item.cart_cnt),
+        order_productPrice: item.cart_price * item.cart_cnt - (((item.cart_price / 100) * item.cart_discount) * item.cart_cnt),
         selectedOption: item.cart_selectedOption
       }))
       const newProduct = {
@@ -135,7 +135,7 @@ const orderController = {
         if (err)
           return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
         else {
-          return res.status(200).json({ message: '성공적으로 주문 상품 갱신이 완료 되었습니다.', success: true, data});
+          return res.status(200).json({ message: '성공적으로 주문 상품 갱신이 완료 되었습니다.', success: true, data });
         }
       })
     } catch (error) {

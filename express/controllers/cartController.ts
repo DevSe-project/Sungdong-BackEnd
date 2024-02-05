@@ -10,9 +10,9 @@ const postsPerPage = 5;
 const cartController = {
   create: async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
-      if (!token) {
-        return res.status(401).json({message : "로그인 후 사용 가능합니다."})
-      }
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 사용 가능합니다." })
+    }
 
     try {
       const decoded = jwt.verify(token, jwtSecret);
@@ -50,13 +50,13 @@ const cartController = {
               return res.status(400).json({ message: "이미 존재하는 상품이 있습니다.", success: false });
             } else {
               const listMap = requestData.map(item => ({
-                  product_id: item.product_id,
-                  category_id: item.category_id,
-                  parentsCategory_id: item.parentsCategory_id,
-                  cart_price: item.cart_price || item.product_price,
-                  cart_discount: item.cart_discount || item.product_discount,
-                  cart_cnt: item.cart_cnt || item.cnt,
-                  cart_selectedOption: item.selectedOption,
+                product_id: item.product_id,
+                category_id: item.category_id,
+                parentsCategory_id: item.parentsCategory_id,
+                cart_price: item.cart_price || item.product_price,
+                cart_discount: item.cart_discount || item.product_discount,
+                cart_cnt: item.cart_cnt || item.cnt,
+                cart_selectedOption: item.selectedOption,
               }));
               const newProduct = {
                 product1: {
@@ -64,9 +64,9 @@ const cartController = {
                 },
                 product2: listMap
               };
-              Cart.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+              Cart.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
                 // 클라이언트에서 보낸 JSON 데이터를 받음
-                if(err)
+                if (err)
                   return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
                 else {
                   return res.status(200).json({ message: '성공적으로 카트에 상품 등록이 완료 되었습니다.', success: true });
@@ -103,53 +103,54 @@ const cartController = {
                 cart_selectedOption: requestData.selectedOption,
               },
             };
-            Cart.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+            Cart.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
               // 클라이언트에서 보낸 JSON 데이터를 받음
-              if(err)
+              if (err)
                 return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
               else {
                 return res.status(200).json({ message: '성공적으로 카트에 상품 등록이 완료 되었습니다.', success: true });
               }
             })
-          }})
-        }
-      } catch (error) {
-        return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
+          }
+        })
       }
-    }, 
-  list : async (req : Request, res : Response) => {
+    } catch (error) {
+      return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
+    }
+  },
+  list: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     const currentPage = req.query.page || 1;
     if (!token) {
-      return res.status(401).json({message : "로그인 후 사용 가능합니다."})
+      return res.status(401).json({ message: "로그인 후 사용 가능합니다." })
     }
 
     try {
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
       const requestData = req.user;
-    // 데이터베이스에서 불러오기
-    Cart.list(requestData.users_id, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
+      // 데이터베이스에서 불러오기
+      Cart.list(requestData.users_id, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
         // 클라이언트에서 보낸 JSON 데이터를 받음
-        if(err)
+        if (err)
           return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
         else {
           return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
         }
-    })
-  } catch (error) {
-    return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
-  }
+      })
+    } catch (error) {
+      return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
+    }
   },
-  delete : async (req : Request, res : Response) => {
+  delete: async (req: Request, res: Response) => {
     const productIds = req.params.ids.split(',').map(Number);
-    Cart.deleteByIds(productIds, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) =>{
-        // 클라이언트에서 보낸 JSON 데이터를 받음
-        if(err)
-          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
-        else {
-          return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true, data });
-        }
+    Cart.deleteByIds(productIds, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true, data });
+      }
     })
   }
 }

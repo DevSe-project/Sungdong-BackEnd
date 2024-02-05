@@ -1,7 +1,7 @@
 import express, { Router } from "express"
 import cartController from "../controllers/cartController"
 
-const cartRouter : Router = express.Router()
+const cartRouter: Router = express.Router()
 
 cartRouter.get("/list", cartController.list);
 cartRouter.post("/list", cartController.list);
