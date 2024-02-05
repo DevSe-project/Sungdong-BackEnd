@@ -150,23 +150,23 @@ const authController = {
     },
 
     /*---------------------------- 유저 정보 조회 관련 ------------------------------*/
-    isDuplicateById : async (req : Request, res : Response) => {  
+    isDuplicateById: async (req: Request, res: Response) => {
         const code = req.body.userId
         User.findByID(code, (err: QueryError | Error | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
             if (err) {
                 return res.status(500).send({ message: err.message });
             }
-    
+
             if (result instanceof Error) {
                 return res.status(409).json({ message: `${result.message}` });
             }
-    
+
             return res.status(200).json({ message: '사용 가능한 아이디입니다.' });
         });
     },
 
-    findId : async (req : Request, res : Response) => {    
-        if(!req.body){
+    findId: async (req: Request, res: Response) => {
+        if (!req.body) {
             res.status(400).send({
                 message: "내용을 채워주세요!"
             });
@@ -239,6 +239,9 @@ const authController = {
                 return res.status(200).json({ message: '조건에 맞게 정렬하였습니다.', success: true, data });
             }
         });
+    },
+    userDel: async (req: Request, res: Response) => {
+
     },
 
     /*----------------------------------코드 관련-------------------------------------*/
