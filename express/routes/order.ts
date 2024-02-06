@@ -4,6 +4,7 @@ import orderController from "../controllers/orderController"
 const orderRouter: Router = express.Router()
 
 orderRouter.get("/list", orderController.list);
+orderRouter.post("/list", orderController.list);
 orderRouter.post("/findList", orderController.findList);
 orderRouter.post("/findSelectOrderList", orderController.findSelectOrderList);
 orderRouter.post("/write", orderController.write);
