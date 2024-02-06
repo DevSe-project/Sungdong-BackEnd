@@ -11,6 +11,7 @@ const searchController = {
     const requestData = req.body;
 
     let searchTerm;
+    let categoryId;
 
     if (Array.isArray(requestData) && requestData.length > 0) {
       searchTerm = [{
@@ -20,6 +21,7 @@ const searchController = {
         product_spec: requestData[0]?.product_spec || '',
         product_model: requestData[0]?.product_model || '',
       }];
+      categoryId = requestData[1] ? requestData[1] : null;
     } else {
       searchTerm = {
         product_id: requestData.search || '',
@@ -27,9 +29,10 @@ const searchController = {
         product_brand: requestData.search || '',
         product_spec: requestData.search || '',
         product_model: requestData.search || '',
-      }
+      };
+      categoryId = null;
     }
-    Search.list(searchTerm, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Search.list(searchTerm, currentPage, postsPerPage, categoryId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });

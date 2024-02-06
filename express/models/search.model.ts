@@ -7,7 +7,7 @@ const performTransaction = db.performTransaction;
 
 class Search {
 
-  static list(reqData: any, currentPage: any, postsPerPage: any, result: (arg0: any, arg1: any) => void) {
+  static list(reqData: any, currentPage: any, postsPerPage: any, categoryId: any | null, result: (arg0: any, arg1: any) => void) {
     const currentPageNumber = parseInt(currentPage, 10) || 1;
     const postsPerPageNumber = parseInt(postsPerPage, 10) || 5;
 
@@ -29,11 +29,17 @@ class Search {
       const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
       const conditionSingle = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")}`;
       const conditionObject = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")}`;
+      const conditionFindParentsCategory = `AND product.parentsCategory_id = ?`
+      const conditionFindCategory = `AND product.category_id = ?`
+      const conditionFindBrand = `AND product.product_brand = ?`
+      const conditionFindMadeIn = `AND product.product_madeIn = ?`
       const orderBy = "ORDER BY product.product_id DESC";
       const limitClause = "LIMIT ?, ?";
-      return `${isCount ? isPrintData ? dataBaseQuery : countBaseQuery : baseQuery} ${Array.isArray(reqData) ? conditionObject : conditionSingle} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
+      return `${isCount ? isPrintData ? dataBaseQuery : countBaseQuery : baseQuery} ${Array.isArray(reqData) ? conditionObject : conditionSingle} ${categoryId !== null ? categoryId.category_id ? conditionFindCategory : categoryId.parentsCategory_id ? conditionFindParentsCategory : categoryId.product_brand ? conditionFindBrand : conditionFindMadeIn : ""} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
     };
 
+    console.log(reqData);
+    console.log(categoryId);
     const query = buildQuery(false, false);
     const countQuery = buildQuery(true, false);
     const dataQuery = buildQuery(true, true);
@@ -41,14 +47,14 @@ class Search {
     const searchTerm = Array.isArray(reqData) ? reqData[0] : reqData;
 
 
-    connection.query(countQuery, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (countErr, countResult: any) => {
+    connection.query(countQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (countErr, countResult: any) => {
       if (countErr) {
         console.log(countErr);
         result(countErr, null);
         connection.releaseConnection;
         return;
       }
-      connection.query(dataQuery, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (dataErr, dataResult: any) => {
+      connection.query(dataQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (dataErr, dataResult: any) => {
         if (dataErr) {
           console.log(dataErr);
           result(dataErr, null);
@@ -59,7 +65,7 @@ class Search {
 
         const datas = dataResult;
 
-        connection.query(query, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        connection.query(query, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn, offset, limit] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
           if (err) {
             console.log("에러 발생: ", err);
             result(err, null);
@@ -84,144 +90,6 @@ class Search {
           }
         });
       })
-    })
-  }
-  static edit(newProduct: any, result: (error: any, response: any) => void) {
-    performTransaction((connection: PoolConnection) => {
-
-      const queries = [
-        "UPDATE product SET ? WHERE product_id = ?",
-        "UPDATE product_option SET ? WHERE product_id = ?",
-      ];
-
-      const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-
-      function executeQuery(queryIndex: number) {
-        if (queryIndex < queries.length) {
-          connection.query(queries[queryIndex], [newProduct[`product${queryIndex + 1}`], newProduct[`product${queryIndex + 1}`].product_id], (err, res) => {
-            if (err) {
-              console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-              connection.rollback(() => {
-                result(err, null);
-                connection.release();
-              });
-            } else {
-              results.push(res);
-              executeQuery(queryIndex + 1);
-            }
-          });
-        } else {
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              console.log('커밋 중 에러 발생: ', commitErr);
-              connection.rollback(() => {
-                result(commitErr, null);
-                connection.release();
-              });
-            } else {
-              console.log('트랜잭션 성공적으로 완료: ', results);
-              result(null, results);
-              connection.release();
-            }
-          });
-        }
-      }
-      executeQuery(0);
-    });
-  }
-  //재고 감소
-  static lowSupply(newProducts: any[]): Promise<any> {
-    const updateQuery = "UPDATE product SET product_supply = ? WHERE product_id = ?";
-    const promises: Promise<any>[] = [];
-
-    newProducts.forEach((item) => {
-      const promise = new Promise((resolve, reject) => {
-        connection.query(updateQuery, [item.product_supply, item.product_id], (err, res) => {
-          if (err) {
-            console.log(`쿼리 실행 중 에러 발생: `, err);
-            reject(err);
-          } else {
-            console.log(`성공적으로 변경 완료: `, res);
-            resolve(res);
-          }
-        });
-      });
-
-      promises.push(promise);
-    });
-
-    return Promise.all(promises);
-  }
-  //재고 조사
-  static checkedSupply(newProducts: any[]): Promise<any> {
-    const updateQuery = "SELECT product_title, product_supply FROM product WHERE product_id = ? AND product_supply > 1";
-    const promises: Promise<any>[] = [];
-
-    newProducts.forEach((item) => {
-      const promise = new Promise((resolve, reject) => {
-        connection.query(updateQuery, [item.product_id], (err: QueryError | null, res: any) => {
-          if (err) {
-            console.log(`쿼리 실행 중 에러 발생: `, err);
-            reject(err);
-          } else {
-            if (res && res.length > 0 && res[0].product_supply > 1) {
-              console.log(`성공적으로 조사 완료: `, res);
-              resolve(res);
-            } else {
-              const errorMessage = `재고가 부족한 상품이 있어 주문이 불가합니다\n재고 부족 : ${item.product_title}`;
-              console.log(errorMessage);
-              reject(new Error(errorMessage));
-            }
-          }
-        });
-      });
-
-      promises.push(promise);
-    });
-
-    return Promise.all(promises);
-  }
-  static deleteByIds(product: string, result: (error: any, response: any) => void) {
-    performTransaction((connection: PoolConnection) => {
-
-      const queries = [
-        "DELETE FROM product WHERE product_id = ?",
-        "DELETE FROM product_option WHERE product_id = ?"
-      ]
-
-      const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-
-      function executeQuery(queryIndex: number) {
-        if (queryIndex < queries.length) {
-          connection.query(queries[queryIndex], product, (err, res) => {
-            if (err) {
-              console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-              connection.rollback(() => {
-                result(err, null);
-                connection.release();
-              });
-            } else {
-              results.push(res);
-              executeQuery(queryIndex + 1);
-            }
-          });
-        } else {
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              console.log('커밋 중 에러 발생: ', commitErr);
-              connection.rollback(() => {
-                result(commitErr, null);
-                connection.release();
-              });
-            } else {
-              console.log('트랜잭션 성공적으로 완료: ', results);
-              result(null, results);
-              connection.release();
-            }
-          });
-        }
-      }
-      executeQuery(0);
     })
   }
 }
