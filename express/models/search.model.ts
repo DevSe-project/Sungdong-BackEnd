@@ -7,7 +7,7 @@ const performTransaction = db.performTransaction;
 
 class Search {
 
-  static list(reqData: any, currentPage: any, postsPerPage: any, categoryId: any | null, result: (arg0: any, arg1: any) => void) {
+  static list(search: any, separateSearch:any, currentPage: any, postsPerPage: any, categoryId: any | null, result: (arg0: any, arg1: any) => void) {
     const currentPageNumber = parseInt(currentPage, 10) || 1;
     const postsPerPageNumber = parseInt(postsPerPage, 10) || 5;
 
@@ -27,34 +27,33 @@ class Search {
       const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
       const dataBaseQuery = "SELECT product.category_id, product.parentsCategory_id, product.product_brand, product.product_madeIn FROM product JOIN product_option ON product.product_id = product_option.product_id";
       const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
-      const conditionSingle = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")}`;
-      const conditionObject = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")}`;
+      const conditionSingle = `WHERE (${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")})`;
+      const conditionObject = `AND (${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")})`;
       const conditionFindParentsCategory = `AND product.parentsCategory_id = ?`
       const conditionFindCategory = `AND product.category_id = ?`
       const conditionFindBrand = `AND product.product_brand = ?`
       const conditionFindMadeIn = `AND product.product_madeIn = ?`
       const orderBy = "ORDER BY product.product_id DESC";
       const limitClause = "LIMIT ?, ?";
-      return `${isCount ? isPrintData ? dataBaseQuery : countBaseQuery : baseQuery} ${Array.isArray(reqData) ? conditionObject : conditionSingle} ${categoryId !== null ? categoryId.category_id ? conditionFindCategory : categoryId.parentsCategory_id ? conditionFindParentsCategory : categoryId.product_brand ? conditionFindBrand : conditionFindMadeIn : ""} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
+      return `${isCount ? isPrintData ? dataBaseQuery : countBaseQuery : baseQuery} ${conditionSingle} ${conditionObject} ${categoryId !== null ? categoryId.category_id ? conditionFindCategory : categoryId.parentsCategory_id ? conditionFindParentsCategory : categoryId.product_brand ? conditionFindBrand : conditionFindMadeIn : ""} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
     };
 
-    console.log(reqData);
-    console.log(categoryId);
     const query = buildQuery(false, false);
     const countQuery = buildQuery(true, false);
     const dataQuery = buildQuery(true, true);
 
-    const searchTerm = Array.isArray(reqData) ? reqData[0] : reqData;
+    const searchTerm = search[0];
+    const separateSearchTerm = separateSearch[0];
 
 
-    connection.query(countQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (countErr, countResult: any) => {
-      if (countErr) {
+    connection.query(countQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`], (countErr, countResult: any) => {
+    if (countErr) {
         console.log(countErr);
         result(countErr, null);
         connection.releaseConnection;
         return;
       }
-      connection.query(dataQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (dataErr, dataResult: any) => {
+      connection.query(dataQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`], (dataErr, dataResult: any) => {
         if (dataErr) {
           console.log(dataErr);
           result(dataErr, null);
@@ -65,7 +64,7 @@ class Search {
 
         const datas = dataResult;
 
-        connection.query(query, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn, offset, limit] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        connection.query(query, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn, offset, limit] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
           if (err) {
             console.log("에러 발생: ", err);
             result(err, null);

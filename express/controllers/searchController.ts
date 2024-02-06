@@ -11,28 +11,29 @@ const searchController = {
     const requestData = req.body;
 
     let searchTerm;
+    let separateSearch;
     let categoryId;
-
+    console.log(requestData)
     if (Array.isArray(requestData) && requestData.length > 0) {
       searchTerm = [{
-        product_id: requestData[0]?.product_id || '',
-        product_title: requestData[0]?.product_title || '',
-        product_brand: requestData[0]?.product_brand || '',
-        product_spec: requestData[0]?.product_spec || '',
-        product_model: requestData[0]?.product_model || '',
+        product_id: requestData[0].search || '',
+        product_title: requestData[0].search || '',
+        product_brand: requestData[0].search || '',
+        product_spec: requestData[0].search || '',
+        product_model: requestData[0].search || '',
       }];
-      categoryId = requestData[1] ? requestData[1] : null;
-    } else {
-      searchTerm = {
-        product_id: requestData.search || '',
-        product_title: requestData.search || '',
-        product_brand: requestData.search || '',
-        product_spec: requestData.search || '',
-        product_model: requestData.search || '',
-      };
-      categoryId = null;
+      separateSearch = [{
+        product_id: requestData[1]?.product_id || '',
+        product_title: requestData[1]?.product_title || '',
+        product_brand: requestData[1]?.product_brand || '',
+        product_spec: requestData[1]?.product_spec || '',
+        product_model: requestData[1]?.product_model || '',
+      }]
+      categoryId = requestData[2] ? requestData[2] : null;
     }
-    Search.list(searchTerm, currentPage, postsPerPage, categoryId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    console.log(searchTerm)
+    console.log(separateSearch)
+    Search.list(searchTerm, separateSearch, currentPage, postsPerPage, categoryId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
