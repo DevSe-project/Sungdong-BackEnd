@@ -22,19 +22,21 @@ class Search {
     const offset = (currentPageNumber - 1) * postsPerPageNumber;
     const limit = postsPerPageNumber;
 
-    const buildQuery = (isCount: boolean) => {
+    const buildQuery = (isCount: boolean, isPrintData: boolean) => {
       const baseQuery = "SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id";
       const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
+      const dataBaseQuery = "SELECT product.category_id, product.parentsCategory_id, product.product_brand, product.product_madeIn FROM product JOIN product_option ON product.product_id = product_option.product_id";
       const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
       const conditionSingle = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")}`;
       const conditionObject = `WHERE ${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")}`;
       const orderBy = "ORDER BY product.product_id DESC";
       const limitClause = "LIMIT ?, ?";
-      return `${isCount ? countBaseQuery : baseQuery} ${Array.isArray(reqData) ? conditionObject : conditionSingle} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
+      return `${isCount ? isPrintData ? dataBaseQuery : countBaseQuery : baseQuery} ${Array.isArray(reqData) ? conditionObject : conditionSingle} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
     };
 
-    const query = buildQuery(false);
-    const countQuery = buildQuery(true);
+    const query = buildQuery(false, false);
+    const countQuery = buildQuery(true, false);
+    const dataQuery = buildQuery(true, true);
 
     const searchTerm = Array.isArray(reqData) ? reqData[0] : reqData;
 
@@ -46,31 +48,42 @@ class Search {
         connection.releaseConnection;
         return;
       }
-
-      const totalRows = countResult[0].totalRows;
-
-      connection.query(query, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
-        if (err) {
-          console.log("에러 발생: ", err);
-          result(err, null);
+      connection.query(dataQuery, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`], (dataErr, dataResult: any) => {
+        if (dataErr) {
+          console.log(dataErr);
+          result(dataErr, null);
           connection.releaseConnection;
           return;
         }
-        else {
-          const totalPages = Math.ceil(totalRows / postsPerPage);
-          console.log("Total Pages:", totalPages); // Add this line to check the value
-          const responseData = {
-            data: res,
-            currentPage: currentPage,
-            totalPages: totalPages,
-            postsPerPage: postsPerPage
+        const totalRows = countResult[0].totalRows;
+
+        const datas = dataResult;
+
+        connection.query(query, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+          if (err) {
+            console.log("에러 발생: ", err);
+            result(err, null);
+            connection.releaseConnection;
+            return;
           }
-          console.log("상품이 갱신되었습니다: ", responseData);
-          result(null, responseData);
-          connection.releaseConnection;
-          return;
-        }
-      });
+          else {
+            const totalPages = Math.ceil(totalRows / postsPerPage);
+            console.log("Total Pages:", totalPages); // Add this line to check the value
+            const responseData = {
+              data: res,
+              currentPage: currentPage,
+              totalPages: totalPages,
+              postsPerPage: postsPerPage,
+              totalRows: totalRows,
+              datas: datas
+            }
+            console.log("상품이 갱신되었습니다: ", responseData);
+            result(null, responseData);
+            connection.releaseConnection;
+            return;
+          }
+        });
+      })
     })
   }
   static edit(newProduct: any, result: (error: any, response: any) => void) {
