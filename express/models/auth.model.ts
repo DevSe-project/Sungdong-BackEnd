@@ -1,4 +1,4 @@
-import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, OkPacket, ProcedureCallPacket, PoolConnection } from 'mysql2';
+import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, ProcedureCallPacket, PoolConnection, OkPacket } from 'mysql2';
 import db from '../db';
 
 // getConnection 함수로 connection 객체 얻기
@@ -232,30 +232,30 @@ class User {
         JOIN users_address ua ON ui.users_id = ua.users_id
         JOIN users_corInfo uc ON ua.users_id = uc.users_id
       `
-      connection.query(countQuery, (err, countResult: any) => {
+    connection.query(countQuery, (err, countResult: any) => {
+      if (err) {
+        result(err, null);
+        return;
+      }
+      const totalRows = countResult[0].totalRows
+      connection.query(query, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
         if (err) {
+          console.log("에러 발생: ", err);
           result(err, null);
           return;
-        }
-        const totalRows = countResult[0].totalRows
-        connection.query(query, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
-          if (err) {
-            console.log("에러 발생: ", err);
-            result(err, null);
-            return;
-          } else {
-            const totalPages = Math.ceil(totalRows / itemsPerPage);
-            const responseData = {
-              data: res,
-              currentPage: currentPage,
-              totalPages: totalPages,
-            }
-            // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-            console.log("상품이 갱신되었습니다: ", responseData);
-            result(null, responseData);
+        } else {
+          const totalPages = Math.ceil(totalRows / itemsPerPage);
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
           }
-        });
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+        }
       });
+    });
   }
 
   // 특정 user 조회 - 필터링
@@ -329,6 +329,83 @@ class User {
       connection.releaseConnection;
     });
   }
+  // 고객 정보 수정(요청된 matchedData를 반영)
+  static updateUser(matchedData: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
+    // matchedData를 이용하여 유저 정보 업데이트
+    // 예: UPDATE users SET column1=value1, column2=value2, ... WHERE condition;
+  }
+
+  static removeUser(user: string[], result: (error: any, response: any) => void) {
+    // 풀에서 연결을 가져옴
+    connection.getConnection((err, conn) => {
+      if (err) {
+        console.log('연결 가져오기 중 에러 발생:', err);
+        result(err, null);
+        return;
+      }
+      // 연결에서 트랜잭션 시작
+      conn.beginTransaction((err) => {
+        if (err) {
+          console.log('트랜잭션 시작 중 에러 발생:', err);
+          result(err, null);
+          return;
+        }
+
+        // users_address 테이블에서 해당 users_id를 참조하는 레코드를 먼저 삭제
+        conn.query(`DELETE FROM users_address WHERE users_id = ?`, [user], (err, res) => {
+          if (err) {
+            // 롤백 수행
+            conn.rollback(() => {
+              console.log('쿼리 실행 중 에러 발생:', err);
+              result(err, null);
+            });
+            return;
+          }
+          console.log('users_address 테이블 레코드 삭제 완료');
+
+          // 각 쿼리를 배열에 추가
+          const queries = [
+            `DELETE FROM users_corInfo WHERE users_id = ?`,
+            `DELETE FROM users_info WHERE users_id = ?`,
+            `DELETE FROM users WHERE users_id = ?`,
+          ];
+
+          // 나머지 쿼리를 순회하며 실행
+          queries.forEach((query) => {
+            conn.query(query, [user], (err, res) => {
+              if (err) {
+                // 롤백 수행
+                conn.rollback(() => {
+                  console.log('쿼리 실행 중 에러 발생:', err);
+                  result(err, null);
+                });
+                return;
+              }
+              console.log('쿼리 실행 성공:', res);
+            });
+          });
+
+          // 모든 쿼리가 성공적으로 실행되면 커밋 수행
+          conn.commit((err) => {
+            if (err) {
+              // 롤백 수행
+              conn.rollback(() => {
+                console.log('트랜잭션 커밋 중 에러 발생:', err);
+                result(err, null);
+              });
+              return;
+            }
+            console.log('트랜잭션 커밋 완료');
+            result(null, 'Success');
+          });
+        });
+      });
+    });
+  }
+
+
+
+
 
 
   /*------------------------------코드-----------------------------*/

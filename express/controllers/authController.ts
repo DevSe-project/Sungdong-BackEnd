@@ -151,8 +151,8 @@ const authController = {
 
   /*---------------------------- 유저 정보 조회 관련 ------------------------------*/
   isDuplicateById: async (req: Request, res: Response) => {
-    const code = req.body.userId
-    User.findByID(code, (err: QueryError | Error | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+    const id = req.body.userId
+    User.findByID(id, (err: QueryError | Error | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
       if (err) {
         return res.status(500).send({ message: err.message });
       }
@@ -217,9 +217,9 @@ const authController = {
     User.getFindUserIfCondition(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
-        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다." });
+        return res.status(500).send({ message: err.message || "고객정보를 갱신하는 중 서버 오류가 발생했 습니다." });
       else {
-        return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
+        return res.status(200).json({ message: '성공적으로 고객정보 갱신이 완료 되었습니다.', success: true, data });
       }
     })
   },
@@ -253,9 +253,50 @@ const authController = {
       }
     });
   },
-  userDel: async (req: Request, res: Response) => {
+  // 고객 정보 업데이트 컨트롤러
+  userUpdate: async (req: Request, res: Response) => {
 
+    const currentPage = parseInt(req.query.page as string, 10) || 1;
+    try {
+      const fetchedData = req.body;
+
+      // 유효성 검사: 변경된 배송 상태 데이터가 유효한지 확인
+      if (!Array.isArray(fetchedData)) {
+        return res.status(400).json({ message: '잘못된 형식입니다.' });
+      }
+
+      // Promise.all을 사용하여 모든 유저 정보를 한 번에 업데이트
+      await Promise.all(fetchedData.map(async (userId: string) => {
+        await User.updateUser(userId, (err, data) => {
+          if (err) {
+            console.error('고객 정보 수정 중 오류가 발생했습니다: ', err);
+            return res.status(500).json({ message: '고객 정보 업데이트 중 오류가 발생했습니다.' });
+          }
+          console.log('고객 정보가 성공적으로 업데이트되었습니다.');
+        });
+      }));
+
+      // 모든 유저 정보가 업데이트되었을 때 성공 응답 반환
+      return res.status(200).json({ message: '모든 유저 정보가 성공적으로 업데이트되었습니다.' });
+    } catch (error) {
+      console.error('고객 정보 수정 중 오류가 발생했습니다: ', error);
+      return res.status(500).json({ message: '고객 정보 업데이트 중 오류가 발생했습니다.' });
+    }
   },
+
+  // 유저 삭제 컨트롤러
+  userDel: async (req: Request, res: Response) => {
+    const usersId = req.params.ids.split(',').map(String);
+    User.removeUser(usersId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true, data });
+      }
+    })
+  },
+
 
   /*----------------------------------코드 관련-------------------------------------*/
   getAllCode: async (req: Request, res: Response) => {
