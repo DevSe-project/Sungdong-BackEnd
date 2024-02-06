@@ -221,6 +221,8 @@ class User {
         JOIN users_info ui ON u.users_id = ui.users_id
         JOIN users_address ua ON ui.users_id = ua.users_id
         JOIN users_corInfo uc ON ua.users_id = uc.users_id
+        JOIN managers m ON ui.managers_id = m.managers_id
+        JOIN managers_info mi ON m.managers_id = mi.managers_id
         LIMIT ?, ?
       `
     const countQuery = `
