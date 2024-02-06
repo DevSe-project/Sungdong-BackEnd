@@ -13,7 +13,6 @@ const searchController = {
     let searchTerm;
     let separateSearch;
     let categoryId;
-    console.log(requestData)
     if (Array.isArray(requestData) && requestData.length > 0) {
       searchTerm = [{
         product_id: requestData[0].search || '',
