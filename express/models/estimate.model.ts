@@ -58,7 +58,7 @@ class Estimate {
     const query = `SELECT * FROM estimateBox JOIN estimateBox_product ON estimateBox.estimateBox_id = estimateBox_product.estimateBox_id JOIN product ON product.product_id = estimateBox_product.product_id WHERE estimateBox.users_id = ? ORDER BY estimateBox_product.estimateBox_product_id DESC LIMIT ?, ?`;
     // 전체 데이터 크기 확인을 위한 쿼리
     const countQuery = "SELECT COUNT(*) as totalRows FROM estimateBox JOIN estimateBox_product ON estimateBox.estimateBox_id = estimateBox_product.estimateBox_id WHERE estimateBox.users_id = ?";
-    connection.query(countQuery, [user_id], (countErr, countResult: any) => {
+    connection.query(countQuery, user_id, (countErr, countResult: any) => {
       if (countErr) {
         result(countErr, null);
         connection.releaseConnection;

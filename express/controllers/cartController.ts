@@ -24,7 +24,7 @@ const cartController = {
         // If requestData is an array, iterate through each item
         const duplicateCheckPromises = requestData.map(item =>
           new Promise((resolve, reject) => {
-            Cart.findOne([req.user.users_id, item.product_id, item.category_id, item.selectedOption], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            Cart.findOne([req.user.users_id, item.product_id, item.category_id, (item.selectedOption || item.estimateBox_selectedOption)], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
               if (err) {
                 reject(err);
               } else {
@@ -46,8 +46,8 @@ const cartController = {
                 parentsCategory_id: item.parentsCategory_id,
                 cart_price: item.cart_price || item.product_price,
                 cart_discount: item.cart_discount || item.product_discount,
-                cart_cnt: item.cart_cnt || item.cnt,
-                cart_selectedOption: item.selectedOption,
+                cart_cnt: item.cart_cnt || item.estimateBox_cnt || item.cnt,
+                cart_selectedOption: item.selectedOption || item.estimateBox_selectedOption,
               }));
               const newProduct = {
                 product1: listMap
@@ -67,7 +67,7 @@ const cartController = {
           });
       } else {
         // If requestData is a single object
-        Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, requestData.selectedOption], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, (requestData.selectedOption || requestData.estimateBox_selectedOption)], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
           if (err) {
             // 서버 오류가 발생한 경우
             return res.status(500).send({ message: err || "서버 오류가 발생했습니다." });
@@ -77,14 +77,17 @@ const cartController = {
           if (data) {
             return res.status(400).json({ message: "이미 존재하는 상품입니다.", success: false });
           } else {
-            const listMap = [requestData].map((item: { product_id: any; category_id: any; parentsCategory_id: any; cart_price: any; product_price: any; cart_discount: any; product_discount: any; cart_cnt: any; cnt: any; selectedOption: any; }) => ({
+            const listMap = [requestData].map((item: {
+              estimateBox_cnt: any;
+              estimateBox_selectedOption: any; product_id: any; category_id: any; parentsCategory_id: any; cart_price: any; product_price: any; cart_discount: any; product_discount: any; cart_cnt: any; cnt: any; selectedOption: any;
+            }) => ({
               product_id: item.product_id,
               category_id: item.category_id,
               parentsCategory_id: item.parentsCategory_id,
               cart_price: item.cart_price || item.product_price,
               cart_discount: item.cart_discount || item.product_discount,
-              cart_cnt: item.cart_cnt || item.cnt,
-              cart_selectedOption: item.selectedOption,
+              cart_cnt: item.cart_cnt || item.estimateBox_cnt || item.cnt,
+              cart_selectedOption: item.selectedOption || item.estimateBox_selectedOption,
             }));
             const newProduct = {
               product1: listMap
