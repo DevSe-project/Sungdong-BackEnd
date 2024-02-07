@@ -11,6 +11,7 @@ import productRouter from "./routes/product";
 import cartRouter from "./routes/cart";
 import orderRouter from "./routes/order";
 import searchRouter from "./routes/search";
+import estimateRouter from "./routes/estimate";
 const app: Express = express()
 const PORT = 5050;
 
@@ -61,5 +62,6 @@ app.use("/product", productRouter)
 app.use("/cart", cartRouter);
 app.use("/order", orderRouter);
 app.use("/search", searchRouter);
+app.use("/estimate", estimateRouter);
 
 app.listen(PORT, () => { console.log(`[SERVER] : http://localhost:${PORT} ON!`) })
