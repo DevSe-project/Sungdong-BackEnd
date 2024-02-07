@@ -329,12 +329,110 @@ class User {
       connection.releaseConnection;
     });
   }
-  // 고객 정보 수정(요청된 matchedData를 반영)
-  static updateUser(matchedData: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
-    // matchedData를 이용하여 유저 정보 업데이트
-    // 예: UPDATE users SET column1=value1, column2=value2, ... WHERE condition;
+
+  // 고객 정보 수정(단일 또는 여러 고객)
+  static updateUser(user: any, result: (error: any, response: any) => void) {
+    // 풀에서 연결을 가져옴
+    connection.getConnection((err, conn) => {
+      if (err) {
+        console.log('연결 가져오기 중 에러 발생:', err);
+        result(err, null);
+        return;
+      }
+      // 연결에서 트랜잭션 시작
+      conn.beginTransaction((err) => {
+        if (err) {
+          console.log('트랜잭션 시작 중 에러 발생:', err);
+          result(err, null);
+          return;
+        }
+        // hasCMS 값에 따라 true 또는 false를 할당
+        const hasCMSValue = user.hasCMS === '동의';
+        // 사용자 정보 업데이트 쿼리 실행
+        conn.query(`UPDATE users 
+        SET userType_id = ?, userId = ?, userPassword = ?
+        WHERE users_id = ?`, [user.userType_id, user.userId, user.userPassword, user.users_id], (error, results, fields) => {
+          if (error) {
+            conn.rollback(() => {
+              console.log('쿼리 실행 중 에러 발생:', error);
+              result(error, null);
+            });
+            return;
+          }
+          conn.query(`UPDATE users_info
+          SET grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
+          WHERE users_info_id = ?`, [user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, hasCMSValue, user.isBanned, user.users_info_id], (error, results, fields) => {
+            if (error) {
+              conn.rollback(() => {
+                console.log('쿼리 실행 중 에러 발생:', error);
+                result(error, null);
+              });
+              return;
+            }
+            conn.query(`UPDATE users_corInfo
+            SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
+            WHERE users_id = ?`, [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id], (error, results, fields) => {
+              if (error) {
+                conn.rollback(() => {
+                  console.log('쿼리 실행 중 에러 발생:', error);
+                  result(error, null);
+                });
+                return;
+              }
+              conn.query(`UPDATE users_address
+              SET zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ?
+              WHERE address_id = ?`, [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id], (error, results, fields) => {
+                if (error) {
+                  conn.rollback(() => {
+                    console.log('쿼리 실행 중 에러 발생:', error);
+                    result(error, null);
+                  });
+                  return;
+                }
+                conn.query(`UPDATE managers
+                SET managers_id = ?, managerPassword = ?, managerId = ?
+                WHERE managers_id = ?`, [user.managers_id, user.managerPassword, user.managerId, user.managers_id], (error, results, fields) => {
+                  if (error) {
+                    conn.rollback(() => {
+                      console.log('쿼리 실행 중 에러 발생:', error);
+                      result(error, null);
+                    });
+                    return;
+                  }
+                  conn.query(`UPDATE managers_info
+                  SET manager_grade = ?, manager_name = ?, manager_tel = ?, manager_email = ?
+                  WHERE managers_info_id = ?`, [user.manager_grade, user.manager_name, user.manager_tel, user.manager_email, user.managers_info_id], (error, results, fields) => {
+                    if (error) {
+                      conn.rollback(() => {
+                        console.log('쿼리 실행 중 에러 발생:', error);
+                        result(error, null);
+                      });
+                      return;
+                    }
+                    // 커밋
+                    conn.commit((err) => {
+                      if (err) {
+                        conn.rollback(() => {
+                          console.log('트랜잭션 커밋 중 에러 발생:', err);
+                          result(err, null);
+                        });
+                        return;
+                      }
+                      console.log('트랜잭션 커밋 완료');
+                      result(null, 'Success');
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
   }
 
+
+  // 고객 삭제(단일, 여러 고객 삭제 가능)
   static removeUser(user: string[], result: (error: any, response: any) => void) {
     // 풀에서 연결을 가져옴
     connection.getConnection((err, conn) => {
