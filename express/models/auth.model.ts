@@ -346,12 +346,12 @@ class User {
           result(err, null);
           return;
         }
-        // hasCMS 값에 따라 true 또는 false를 할당
-        const hasCMSValue = user.hasCMS === '동의';
+        // const userType_id = user.userType_id === '1' ? 1 : 2;
+        const hasCMS = user.hasCMS === 'true' ? true : false;
         // 사용자 정보 업데이트 쿼리 실행
-        conn.query(`UPDATE users 
-        SET userType_id = ?, userId = ?, userPassword = ?
-        WHERE users_id = ?`, [user.userType_id, user.userId, user.userPassword, user.users_id], (error, results, fields) => {
+        conn.query(`UPDATE users_address
+        SET userType_id = ?, zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ?
+        WHERE address_id = ?`, [user.userType_id, user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id], (error, results, fields) => {
           if (error) {
             conn.rollback(() => {
               console.log('쿼리 실행 중 에러 발생:', error);
@@ -360,8 +360,8 @@ class User {
             return;
           }
           conn.query(`UPDATE users_info
-          SET grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
-          WHERE users_info_id = ?`, [user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, hasCMSValue, user.isBanned, user.users_info_id], (error, results, fields) => {
+          SET userType_id = ?, grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
+          WHERE users_info_id = ?`, [user.userType_id, user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, hasCMS, user.isBanned, user.users_info_id], (error, results, fields) => {
             if (error) {
               conn.rollback(() => {
                 console.log('쿼리 실행 중 에러 발생:', error);
@@ -370,8 +370,8 @@ class User {
               return;
             }
             conn.query(`UPDATE users_corInfo
-            SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
-            WHERE users_id = ?`, [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id], (error, results, fields) => {
+            SET userType_id = ?, cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
+            WHERE users_id = ?`, [user.userType_id, user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id], (error, results, fields) => {
               if (error) {
                 conn.rollback(() => {
                   console.log('쿼리 실행 중 에러 발생:', error);
@@ -379,9 +379,9 @@ class User {
                 });
                 return;
               }
-              conn.query(`UPDATE users_address
-              SET zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ?
-              WHERE address_id = ?`, [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id], (error, results, fields) => {
+              conn.query(`UPDATE users 
+              SET userType_id = ?, userId = ?, userPassword = ?
+              WHERE users_id = ?`, [user.userType_id, user.userId, user.userPassword, user.users_id], (error, results, fields) => {
                 if (error) {
                   conn.rollback(() => {
                     console.log('쿼리 실행 중 에러 발생:', error);
