@@ -89,7 +89,11 @@ const authController = {
       users5: {
         users_id: commonUserId,
         userType_id: req.body.userType_id,
-      }
+      },
+      users6: {
+        users_id: commonUserId,
+        userType_id: req.body.userType_id,
+      },
     };
 
     // 데이터베이스에 저장

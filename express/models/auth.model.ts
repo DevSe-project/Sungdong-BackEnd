@@ -17,6 +17,7 @@ class User {
         "INSERT INTO users_corInfo SET ?",
         "INSERT INTO users_address SET ?",
         "INSERT INTO cart SET ?",
+        "INSERT INTO estimateBox SET ?",
       ];
 
       const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
