@@ -200,6 +200,35 @@ const estimateController = {
       return res.status(400).json({ message: error.message });
     }
   },
+
+  
+  // 견적함 리스트
+  manager: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    const currentPage = req.query.page || 1;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 사용 가능합니다." })
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      const requestData = req.user;
+      // 데이터베이스에서 불러오기
+      Estimate.manager(requestData.users_id, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
+        }
+      })
+    } catch (error) {
+      return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
+    }
+  },
+
+  // 견적서의 가장 마지막 주문을 불러와서 작성
   findList: async (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.jwt_token;
     if (!token) {
@@ -234,6 +263,8 @@ const estimateController = {
       return res.status(403).json({ message: '회원 인증이 만료되어 재 로그인이 필요합니다.' });
     }
   },
+
+  // 특정 견적서에 해당하는 아이템들 출력
   findSelectOrderList: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token) {
@@ -255,22 +286,6 @@ const estimateController = {
       })
     } catch (error) {
       return res.status(403).json({ message: '회원 인증이 만료되어 로그인이 필요합니다.' });
-    }
-  },
-  findLastOne: async (req: Request, res: Response) => {
-    const token = req.cookies.jwt_token;
-    if (!token) {
-      return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })
-    }
-
-    try {
-      const decoded = jwt.verify(token, jwtSecret);
-      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
-      const requestData = req.user;
-      // 데이터베이스에서 불러오기
-
-    } catch (error) {
-      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
     }
   },
   delete: async (req: Request, res: Response) => {
