@@ -201,47 +201,59 @@ class Estimate {
       executeQuery(0); // Start with the first query
     });
   }
-  static edit(newProduct: any, result: (error: any, response: any) => void) {
-    performTransaction((connection: PoolConnection) => {
-
-      const queries = [
-        "UPDATE product SET ? WHERE product_id = ?",
-        "UPDATE product_option SET ? WHERE product_id = ?",
-      ];
-
-      const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-
-      function executeQuery(queryIndex: number) {
-        if (queryIndex < queries.length) {
-          connection.query(queries[queryIndex], [newProduct[`product${queryIndex + 1}`], newProduct[`product${queryIndex + 1}`].product_id], (err, res) => {
-            if (err) {
-              console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-              connection.rollback(() => {
-                result(err, null);
-                connection.release();
-              });
-            } else {
-              results.push(res);
-              executeQuery(queryIndex + 1);
-            }
-          });
-        } else {
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              console.log('커밋 중 에러 발생: ', commitErr);
-              connection.rollback(() => {
-                result(commitErr, null);
-                connection.release();
-              });
-            } else {
-              console.log('트랜잭션 성공적으로 완료: ', results);
-              result(null, results);
-              connection.release();
-            }
-          });
-        }
+  //가장 최근 회원의 견적 내역에서 견적 상품들 뽑아내기
+  static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
+    const query = "SELECT * FROM estimate_product JOIN product ON estimate_product.product_id = product.product_id WHERE estimate_id = (SELECT estimate.estimate_id FROM estimate WHERE estimate.users_id = ? ORDER BY estimate.estimate_date DESC LIMIT 1)";
+    connection.query(query, user_id, (err: QueryError | null, res: RowDataPacket[]) => {
+      if (err) {
+        console.log("에러 발생: ", err);
+        result(err, null);
+        connection.releaseConnection;
+        return;
       }
-      executeQuery(0);
+      else {
+        // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+        console.log("상품이 갱신되었습니다: ", res);
+        result(null, res);
+        connection.releaseConnection;
+        return;
+      }
+    });
+  }
+  //회원의 주문 내역에서 특정 조건의 주문 상품들 뽑아내기
+  static findSelectEstimateList(user_id: string, order_id: string, result: (arg0: any, arg1: any) => void) {
+    const query = "SELECT `order`.*, delivery.deliveryType, delivery.delivery_date, delivery.delivery_selectedCor, delivery.delivery_message FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? AND order.order_id = ?";
+    connection.query(query, [user_id, order_id], (err: QueryError | null, res: RowDataPacket[]) => {
+      if (err) {
+        console.log("에러 발생: ", err);
+        result(err, null);
+        connection.releaseConnection;
+        return;
+      }
+      else {
+        // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+        console.log("주문 내역을 불러왔습니다: ", res);
+        result(null, res);
+        connection.releaseConnection;
+        return;
+      }
+    });
+  }
+  //가장 최근 회원의 주문내역 1건 뽑아내기
+  static findLastOne(userData: any, result: (arg0: any, arg1: any) => void) {
+    const query = "SELECT * FROM estimate WHERE estimate.users_id = ? ORDER BY estimate.estimate_date DESC LIMIT 1";
+    connection.query(query, userData, (err: QueryError | null, res: RowDataPacket[]) => {
+      try {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+        } else {
+          console.log("해당 유저의 가장 마지막 주문을 불렀습니다.: ", res[0]);
+          result(null, res[0]);
+        }
+      } finally {
+        connection.releaseConnection; // Release the connection in a finally block
+      }
     });
   }
   static deleteByIds(product: number[], result: (error: any, response: any) => void) {
