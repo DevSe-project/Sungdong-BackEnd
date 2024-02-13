@@ -150,6 +150,33 @@ const productController = {
         return res.status(500).send({ message: error || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
       });
   },
+
+  filter: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string) || 1;
+    const postsPerPage = parseInt(req.query.post as string) || 10;
+    const requestData = req.body;
+    const newFilter = {
+      product_title: requestData.product_title || '',
+      product_brand: requestData.product_brand || '',
+      product_id: requestData.product_id || '',
+      product_state: requestData.state || '',
+      parentsCategory_id: requestData.category.middleId || '',
+      category_id: requestData.category.lowId || '',
+      product_supply: requestData.product_supply || '',
+      dateType: requestData.dateType,
+      dateStart: requestData.date.start,
+      dateEnd: requestData.date.end
+    }
+    console.log(newFilter)
+    Product.filter(newFilter,currentPage,postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 조회가 완료 되었습니다.', success: true, data });
+      }
+    })
+  },
   delete: async (req: Request, res: Response) => {
     const requestData = req.params.id;
     Product.deleteByIds(requestData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
