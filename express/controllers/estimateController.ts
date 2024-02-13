@@ -155,7 +155,6 @@ const estimateController = {
         parentsCategory_id: item.parentsCategory_id,
         estimate_price: item.estimateBox_price,
         estimate_cnt: item.estimateBox_cnt,
-        estimate_selectedOption: item.selectedOption,
         product_profit: item.product_profit,
         product_etc: item.product_etc,
         product_ts: item.product_ts
@@ -165,6 +164,7 @@ const estimateController = {
           estimate_id: newId,
           users_id: req.user.users_id,
           userType_id: req.user.userType_id,
+          estimate_amount: requestData[0]?.estimate_amount,
           estimate_expire: requestData[0]?.estimate_expire,
           estimate_amountDiscount: requestData[0]?.estimate_amountDiscount,
           estimate_due: requestData[0]?.estimate_due,
@@ -265,7 +265,7 @@ const estimateController = {
   },
 
   // 특정 견적서에 해당하는 아이템들 출력
-  findSelectOrderList: async (req: Request, res: Response) => {
+  findSelectEstimateList: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token) {
       return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })

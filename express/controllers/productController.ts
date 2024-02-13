@@ -50,8 +50,10 @@ const productController = {
     })
   },
   list: async (req: Request, res: Response) => {
+    const currentPage = req.query.page || 1;
+    const postsPerPage = req.query.post || 10;
     // 데이터베이스에서 불러오기
-    Product.list((err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Product.list(currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });

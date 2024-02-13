@@ -10,13 +10,13 @@ class Estimate {
   static createBoxItem(newProduct: any, userId: string, result: (error: any, results: any) => void) {
     const query = "INSERT INTO estimateBox_product SET ?, estimateBox_id = (SELECT estimateBox_id FROM estimateBox WHERE users_id = ?)";
     const promises: Promise<any>[] = [];
-  
+
     if (!Array.isArray(newProduct.product1)) {
       console.error("Invalid newProduct format. 'product1' should be an array.");
       result("Invalid newProduct format.", null);
       return;
     }
-  
+
     newProduct.product1.forEach((product: any) => {
       const values = {
         product_id: product.product_id,
@@ -27,7 +27,7 @@ class Estimate {
         estimateBox_cnt: product.estimateBox_cnt,
         estimateBox_selectedOption: product.estimateBox_selectedOption,
       };
-  
+
       promises.push(new Promise((resolve, reject) => {
         connection.query(query, [values, userId], (err, res) => {
           if (err) {
@@ -38,7 +38,7 @@ class Estimate {
         });
       }));
     });
-  
+
     Promise.all(promises)
       .then((resArray) => {
         console.log('쿼리 실행 성공: ', resArray);
@@ -49,8 +49,8 @@ class Estimate {
         result(err, null);
       });
   }
-  
-  
+
+
 
   static list(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
@@ -92,7 +92,24 @@ class Estimate {
   static manager(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
-    const query = `SELECT * FROM estimate WHERE users_id = ? ORDER BY estimate_date DESC LIMIT ?, ?`;
+    const query = `
+      SELECT estimate.*, 
+      GROUP_CONCAT(
+          JSON_OBJECT(
+              'product_id', estimate_product.product_id,
+              'product_title', product.product_title
+          )
+      ) AS products 
+      FROM estimate 
+      JOIN estimate_product 
+      ON estimate.estimate_id = estimate_product.estimate_id 
+      JOIN product 
+      ON product.product_id = estimate_product.product_id 
+      WHERE estimate.users_id = ? 
+      GROUP BY estimate.estimate_id 
+      ORDER BY estimate.estimate_date DESC LIMIT ?, ?
+  `;
+
     // 전체 데이터 크기 확인을 위한 쿼리
     const countQuery = "SELECT COUNT(*) as totalRows FROM estimate WHERE estimate.users_id = ?";
     connection.query(countQuery, user_id, (countErr, countResult: any) => {
@@ -258,9 +275,9 @@ class Estimate {
     });
   }
   //회원의 주문 내역에서 특정 조건의 주문 상품들 뽑아내기
-  static findSelectEstimateList(user_id: string, order_id: string, result: (arg0: any, arg1: any) => void) {
-    const query = "SELECT `order`.*, delivery.deliveryType, delivery.delivery_date, delivery.delivery_selectedCor, delivery.delivery_message FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? AND order.order_id = ?";
-    connection.query(query, [user_id, order_id], (err: QueryError | null, res: RowDataPacket[]) => {
+  static findSelectEstimateList(user_id: string, estimate_id: string, result: (arg0: any, arg1: any) => void) {
+    const query = "SELECT estimate_product.*, product.* FROM estimate JOIN estimate_product ON estimate.estimate_id = estimate_product.estimate_id JOIN product ON estimate_product.product_id = product.product_id WHERE estimate.users_id = ? AND estimate.estimate_id = ?";
+    connection.query(query, [user_id, estimate_id], (err: QueryError | null, res: RowDataPacket[]) => {
       if (err) {
         console.log("에러 발생: ", err);
         result(err, null);
