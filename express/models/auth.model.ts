@@ -147,18 +147,19 @@ class User {
         u.users_id AS users_id,
         uc.cor_corName AS cor_corName, 
         COUNT(o.order_id) AS ordersCount,
-        SUM(CASE WHEN o.orderState = 2 THEN 1 ELSE 0 END) AS preparing_orders,
-        SUM(CASE WHEN o.orderState = 3 THEN 1 ELSE 0 END) AS shipping_orders,
-        SUM(CASE WHEN o.orderState = 4 THEN 1 ELSE 0 END) AS completed_orders
+        SUM(CASE WHEN o.orderState IN(0,1,2) THEN 1 ELSE 0 END) AS preparing_orders,
+        SUM(CASE WHEN o.orderState IN(3,5) THEN 1 ELSE 0 END) AS shipping_orders,
+        SUM(CASE WHEN o.orderState IN(4) THEN 1 ELSE 0 END) AS completed_orders
       FROM 
         users u 
       JOIN 
         users_corInfo uc ON u.users_id = uc.users_id 
       LEFT JOIN 
         \`order\` o ON u.users_id = o.users_id 
+      WHERE u.users_id = ?
       GROUP BY 
-        u.users_id, uc.cor_corName;
-      `, user.users_id, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
+        u.users_id, uc.cor_corName
+      `, [user.users_id], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
       if (err) {
         console.log("에러 발생: ", err);
         result(err, null);
