@@ -140,6 +140,43 @@ class User {
       }
     });
   }
+  // Welcome Module에 필요한 user(users_corName), order(orderState)정보 조회
+  static welcomeModuleInfo(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+    connection.query(`
+      SELECT 
+        u.users_id AS users_id,
+        uc.cor_corName AS cor_corName, 
+        COUNT(o.order_id) AS ordersCount,
+        SUM(CASE WHEN o.orderState = 2 THEN 1 ELSE 0 END) AS preparing_orders,
+        SUM(CASE WHEN o.orderState = 3 THEN 1 ELSE 0 END) AS shipping_orders,
+        SUM(CASE WHEN o.orderState = 4 THEN 1 ELSE 0 END) AS completed_orders
+      FROM 
+        users u 
+      JOIN 
+        users_corInfo uc ON u.users_id = uc.users_id 
+      LEFT JOIN 
+        \`order\` o ON u.users_id = o.users_id 
+      GROUP BY 
+        u.users_id, uc.cor_corName;
+      `, user.users_id, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
+      if (err) {
+        console.log("에러 발생: ", err);
+        result(err, null);
+        connection.releaseConnection;
+        return;
+      } else {
+        if (res.length > 0) {
+          console.log("찾은 유저: ", res[0]);
+          result(null, res[0]); // 찾은 사용자 정보 반환
+          connection.releaseConnection;
+        } else {
+          // 결과가 없을 시
+          result("찾을 수 없습니다.", null);
+          connection.releaseConnection;
+        }
+      }
+    });
+  }
   // 로그인
   static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | Error | null, arg1: any) => void) {
     connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
@@ -252,7 +289,7 @@ class User {
             totalPages: totalPages,
           }
           // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-          console.log("상품이 갱신되었습니다: ", responseData);
+          console.log("고객정보가 갱신되었습니다: ", responseData);
           result(null, responseData);
         }
       });
@@ -351,8 +388,8 @@ class User {
         const hasCMS = user.hasCMS === 'true' ? true : false;
         // 사용자 정보 업데이트 쿼리 실행
         conn.query(`UPDATE users_address
-        SET userType_id = ?, zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ?
-        WHERE address_id = ?`, [user.userType_id, user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id], (error, results, fields) => {
+        SET zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ?
+        WHERE address_id = ?`, [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id], (error, results, fields) => {
           if (error) {
             conn.rollback(() => {
               console.log('쿼리 실행 중 에러 발생:', error);
@@ -361,8 +398,8 @@ class User {
             return;
           }
           conn.query(`UPDATE users_info
-          SET userType_id = ?, grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
-          WHERE users_info_id = ?`, [user.userType_id, user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, hasCMS, user.isBanned, user.users_info_id], (error, results, fields) => {
+          SET grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
+          WHERE users_info_id = ?`, [user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, hasCMS, user.isBanned, user.users_info_id], (error, results, fields) => {
             if (error) {
               conn.rollback(() => {
                 console.log('쿼리 실행 중 에러 발생:', error);
@@ -371,8 +408,8 @@ class User {
               return;
             }
             conn.query(`UPDATE users_corInfo
-            SET userType_id = ?, cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
-            WHERE users_id = ?`, [user.userType_id, user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id], (error, results, fields) => {
+            SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
+            WHERE users_id = ?`, [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id], (error, results, fields) => {
               if (error) {
                 conn.rollback(() => {
                   console.log('쿼리 실행 중 에러 발생:', error);
@@ -434,72 +471,20 @@ class User {
 
 
   // 고객 삭제(단일, 여러 고객 삭제 가능)
-  static removeUser(user: string[], result: (error: any, response: any) => void) {
-    // 풀에서 연결을 가져옴
-    connection.getConnection((err, conn) => {
+  static removeUser(users: string[], result: (error: any, response: any) => void) {
+    const query = `DELETE FROM users WHERE users_id IN (?)`;
+
+    connection.query(query, [users], (err, res) => {
       if (err) {
-        console.log('연결 가져오기 중 에러 발생:', err);
+        console.log(`쿼리 실행 중 에러 발생 (users 테이블): `, err);
         result(err, null);
-        return;
+        connection.releaseConnection;
+      } else {
+        console.log(`users 및 관련 테이블에서 성공적으로 삭제 완료: `, res);
+        result(null, res);
+        connection.releaseConnection;
       }
-      // 연결에서 트랜잭션 시작
-      conn.beginTransaction((err) => {
-        if (err) {
-          console.log('트랜잭션 시작 중 에러 발생:', err);
-          result(err, null);
-          return;
-        }
-
-        // users_address 테이블에서 해당 users_id를 참조하는 레코드를 먼저 삭제
-        conn.query(`DELETE FROM users_address WHERE users_id = ?`, [user], (err, res) => {
-          if (err) {
-            // 롤백 수행
-            conn.rollback(() => {
-              console.log('쿼리 실행 중 에러 발생:', err);
-              result(err, null);
-            });
-            return;
-          }
-          console.log('users_address 테이블 레코드 삭제 완료');
-
-          // 각 쿼리를 배열에 추가
-          const queries = [
-            `DELETE FROM users_corInfo WHERE users_id = ?`,
-            `DELETE FROM users_info WHERE users_id = ?`,
-            `DELETE FROM users WHERE users_id = ?`,
-          ];
-
-          // 나머지 쿼리를 순회하며 실행
-          queries.forEach((query) => {
-            conn.query(query, [user], (err, res) => {
-              if (err) {
-                // 롤백 수행
-                conn.rollback(() => {
-                  console.log('쿼리 실행 중 에러 발생:', err);
-                  result(err, null);
-                });
-                return;
-              }
-              console.log('쿼리 실행 성공:', res);
-            });
-          });
-
-          // 모든 쿼리가 성공적으로 실행되면 커밋 수행
-          conn.commit((err) => {
-            if (err) {
-              // 롤백 수행
-              conn.rollback(() => {
-                console.log('트랜잭션 커밋 중 에러 발생:', err);
-                result(err, null);
-              });
-              return;
-            }
-            console.log('트랜잭션 커밋 완료');
-            result(null, 'Success');
-          });
-        });
-      });
-    });
+    })
   }
 
 

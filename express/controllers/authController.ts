@@ -136,6 +136,29 @@ const authController = {
       }
     })
   },
+
+  // Welcome Module
+  welcomeInfo: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인이 되지 않아 정보를 불러들일 수 없습니다." });
+    }
+
+    jwt.verify(token, jwtSecret, (err: any, user: any) => {
+      if (err) {
+        return res.status(403).json({ message: "재 로그인이 필요합니다." })
+      }
+      else {
+        User.welcomeModuleInfo(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+          if (err) {
+            return res.status(500).send({ message: err });
+          } else {
+            return res.status(200).json({ message: '인증이 완료되었습니다.', success: true, data });
+          }
+        });
+      }
+    })
+  },
   /*---------------------------- 토큰 검증 -------------------------------*/
 
   user: async (req: Request, res: Response) => {

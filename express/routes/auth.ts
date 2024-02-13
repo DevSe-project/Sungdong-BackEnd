@@ -14,6 +14,8 @@ authRouter.post("/findId", authController.findId);
 authRouter.post("/findPw", authController.findPw);
 // 마이페이지
 authRouter.get("/info", authController.info);
+// WelcomeModule
+authRouter.get("/welcomeInfo", authController.welcomeInfo);
 
 /*------------------ 회원 관리--------------------*/
 authRouter.get("/userAllOfPage", authController.userAllOfPage);
