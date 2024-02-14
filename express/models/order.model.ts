@@ -141,6 +141,25 @@ class Order {
       }
     });
   }
+  //특정 주문의 주문 상품들 출력하기
+  static selectOrderProductById(order_id: string, result: (arg0: any, arg1: any) => void) {
+    const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = ?";
+    connection.query(query, order_id, (err: QueryError | null, res: RowDataPacket[]) => {
+      if (err) {
+        console.log("에러 발생: ", err);
+        result(err, null);
+        connection.releaseConnection;
+        return;
+      }
+      else {
+        // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+        console.log("상품이 갱신되었습니다: ", res);
+        result(null, res);
+        connection.releaseConnection;
+        return;
+      }
+    });
+  }
   //회원의 주문 내역에서 특정 조건의 주문 상품들 뽑아내기
   static findSelectOrderList(user_id: string, order_id: string, result: (arg0: any, arg1: any) => void) {
     const query = "SELECT `order`.*, delivery.deliveryType, delivery.delivery_date, delivery.delivery_selectedCor, delivery.delivery_message FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? AND order.order_id = ?";
@@ -177,6 +196,7 @@ class Order {
       }
     });
   }
+  
   static edit(newProduct: any, result: (error: any, response: any) => void) {
     performTransaction((connection: PoolConnection) => {
 
@@ -219,6 +239,104 @@ class Order {
       }
       executeQuery(0);
     });
+  }
+  // 배송리스트 조회(전체) : JOIN(order | product | delivery)
+  static getOrderList(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+    const offset = (currentPage - 1) * itemsPerPage;
+    const limit = itemsPerPage;
+    performTransaction((connection: PoolConnection) => {
+
+      const queries = [
+        `
+        SELECT 
+        o.*,
+        d.*,
+        product_length,
+        order_sum,
+        product_title  
+    FROM 
+        delivery d
+    JOIN 
+        \`order\` o ON d.order_id = o.order_id
+    JOIN (
+        SELECT 
+            o.order_id,
+            COUNT(*) AS product_length,
+            SUM(op.order_cnt) AS order_sum,
+            MAX(p.product_title) AS product_title  
+        FROM 
+            \`order\` o
+        JOIN 
+            order_product op ON o.order_id = op.order_id 
+        JOIN 
+            product p ON op.product_id = p.product_id
+        GROUP BY 
+            o.order_id
+        ) AS subquery ON o.order_id = subquery.order_id
+      WHERE o.orderState < 2
+      LIMIT ?, ?  
+      `
+      ];
+
+        // 전체 데이터 크기 확인을 위한 쿼리
+        const countQuery = `
+        SELECT 
+          COUNT(*) as totalRows 
+        FROM 
+          delivery d
+        JOIN 
+        \`order\` o ON d.order_id = o.order_id
+      `;
+
+      connection.query(countQuery, (err, countResult: any) => {
+        if (err) {
+          result(err, null);
+          return;
+        }
+        const totalRows = countResult[0].totalRows
+
+      const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
+
+      function executeQuery(queryIndex: number) {
+        if (queryIndex < queries.length) {
+          connection.query(queries[queryIndex], [offset, limit], (err, res) => {
+            if (err) {
+              console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+              connection.rollback(() => {
+                result(err, null);
+                connection.release();
+              });
+            } else {
+              results.push(res);
+              executeQuery(queryIndex + 1);
+            }
+          });
+        } else {
+          connection.commit((commitErr) => {
+            if (commitErr) {
+              console.log('커밋 중 에러 발생: ', commitErr);
+              connection.rollback(() => {
+                result(commitErr, null);
+                connection.release();
+              });
+            } else {
+                const totalPages = Math.ceil(totalRows / itemsPerPage);
+                const responseData = {
+                  data: results,
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                }
+                // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                console.log("상품이 갱신되었습니다: ", responseData);
+                result(null, responseData);
+              }
+              connection.release();
+            })
+          }
+      }
+      executeQuery(0);
+    });
+    })
   }
   static deleteByIds(product: number[], result: (error: any, response: any) => void) {
     const query = "DELETE FROM cart_product WHERE cart_product_id IN (?)"
