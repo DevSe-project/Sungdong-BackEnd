@@ -410,7 +410,6 @@ class User {
 
     // 단일 사용자 정보 업데이트 함수
     function updateSingleUser(conn: any, user: any): void {
-      const hasCMS = user.hasCMS === 'true' ? true : false;
       // 사용자 정보 업데이트 쿼리 실행
       conn.query(
         `UPDATE users_address
@@ -430,7 +429,7 @@ class User {
             `UPDATE users_info
               SET grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
               WHERE users_info_id = ?`,
-            [user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, hasCMS, user.isBanned, user.users_info_id],
+            [user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, user.users_info_id],
             (error: any, results: any, fields: any) => {
               if (error) {
                 conn.rollback(() => {
