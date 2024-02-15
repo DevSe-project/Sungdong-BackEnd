@@ -145,6 +145,7 @@ class User {
     connection.query(`
       SELECT 
         u.users_id AS users_id,
+        u.userType_id AS userType_id,
         uc.cor_corName AS cor_corName, 
         COUNT(o.order_id) AS ordersCount,
         SUM(CASE WHEN o.orderState IN(0,1,2) THEN 1 ELSE 0 END) AS preparing_orders,
