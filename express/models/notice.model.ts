@@ -1,13 +1,15 @@
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import db from "../db";
 
+// 쿼리문 상세하게 업데이트해야 할 소요 있음
+
 class Notice {
   static connection = db.getConnection();
 
   static create(newPost: any): Promise<ResultSetHeader> {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        `INSERT INTO notices SET ?`,
+        `INSERT INTO notice SET ?`,
         newPost,
         (error: QueryError | null, result: ResultSetHeader) => {
           if (error) {
@@ -22,7 +24,7 @@ class Notice {
   static getAll(): Promise<RowDataPacket[]> {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        `SELECT * FROM notices`,
+        `SELECT * FROM notice`,
         (error: QueryError | null, rows: RowDataPacket[]) => {
           if (error) {
             return reject(error);
@@ -36,7 +38,7 @@ class Notice {
   static update(postId: string, updatedContent: string): Promise<ResultSetHeader> {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        `UPDATE notices SET content = ? WHERE id = ?`,
+        `UPDATE notice SET content = ? WHERE id = ?`, 
         [updatedContent, postId],
         (error: QueryError | null, result: ResultSetHeader) => {
           if (error) {
@@ -51,7 +53,7 @@ class Notice {
   static delete(postId: string): Promise<ResultSetHeader> {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        `DELETE FROM notices WHERE id = ?`,
+        `DELETE FROM notice WHERE id = ?`,
         postId,
         (error: QueryError | null, result: ResultSetHeader) => {
           if (error) {
