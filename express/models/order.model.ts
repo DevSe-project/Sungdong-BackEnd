@@ -196,7 +196,7 @@ class Order {
       }
     });
   }
-  
+
   static edit(newProduct: any, result: (error: any, response: any) => void) {
     performTransaction((connection: PoolConnection) => {
 
@@ -278,8 +278,8 @@ class Order {
       `
       ];
 
-        // 전체 데이터 크기 확인을 위한 쿼리
-        const countQuery = `
+      // 전체 데이터 크기 확인을 위한 쿼리
+      const countQuery = `
         SELECT 
           COUNT(*) as totalRows 
         FROM 
@@ -294,33 +294,33 @@ class Order {
           result(err, null);
           return;
         }
-        const totalRows = countResult[0].totalRows !== 0 ? countResult[0].totalRows : 1 
+        const totalRows = countResult[0].totalRows !== 0 ? countResult[0].totalRows : 1
 
-      const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
+        const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
 
-      function executeQuery(queryIndex: number) {
-        if (queryIndex < queries.length) {
-          connection.query(queries[queryIndex], [requestData !== null ? requestData : 2, offset, limit], (err, res) => {
-            if (err) {
-              console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-              connection.rollback(() => {
-                result(err, null);
-                connection.release();
-              });
-            } else {
-              results.push(res);
-              executeQuery(queryIndex + 1);
-            }
-          });
-        } else {
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              console.log('커밋 중 에러 발생: ', commitErr);
-              connection.rollback(() => {
-                result(commitErr, null);
-                connection.release();
-              });
-            } else {
+        function executeQuery(queryIndex: number) {
+          if (queryIndex < queries.length) {
+            connection.query(queries[queryIndex], [requestData !== null ? requestData : 2, offset, limit], (err, res) => {
+              if (err) {
+                console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                connection.rollback(() => {
+                  result(err, null);
+                  connection.release();
+                });
+              } else {
+                results.push(res);
+                executeQuery(queryIndex + 1);
+              }
+            });
+          } else {
+            connection.commit((commitErr) => {
+              if (commitErr) {
+                console.log('커밋 중 에러 발생: ', commitErr);
+                connection.rollback(() => {
+                  result(commitErr, null);
+                  connection.release();
+                });
+              } else {
                 const totalPages = Math.ceil(totalRows / itemsPerPage);
                 const responseData = {
                   data: results,
@@ -334,9 +334,9 @@ class Order {
               connection.release();
             })
           }
-      }
-      executeQuery(0);
-    });
+        }
+        executeQuery(0);
+      });
     })
   }
 
@@ -364,6 +364,94 @@ class Order {
     } catch (error: any) {
       throw new Error(`Failed to update delivery state: ${error.message}`);
     }
+  }
+
+  static filter(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const baseQuery = `
+    SELECT 
+      o.*, 
+      d.*,        
+      product_length,
+      order_sum,
+      product_title 
+    FROM
+      \`order\` AS o
+    JOIN 
+        delivery AS d
+    ON 
+        o.order_id = d.order_id
+    JOIN (
+      SELECT 
+          o.order_id,
+          COUNT(*) AS product_length,
+          SUM(op.order_cnt) AS order_sum,
+          MAX(p.product_title) AS product_title  
+        FROM 
+          \`order\` AS o
+        JOIN 
+          order_product AS op ON o.order_id = op.order_id 
+        JOIN 
+          product AS p ON op.product_id = p.product_id
+        GROUP BY 
+          o.order_id
+      ) AS subquery 
+      ON o.order_id = subquery.order_id`;
+    const countBaseQuery = "SELECT COUNT(*) as totalRows FROM \`order\` AS o JOIN delivery AS d ON o.order_id = d.order_id";
+
+    const condition = `WHERE o.orderState < 2 AND (o.isCancel = 0 OR o.isCancel IS NULL)`
+    const conditionDelType = newFilter.deliveryType ? `AND d.deliveryType = ?` : '';
+    const conditionFilter = newFilter.selectFilter && newFilter.filterValue ? `AND ${newFilter.selectFilter} LIKE ?` : '';
+    const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
+      `AND o.order_date BETWEEN '${newFilter.dateStart} 00:00:00' AND '${newFilter.dateEnd} 23:59:59'`
+      : '';
+
+
+    const orderBy = "ORDER BY o.order_id DESC";
+
+    const query = `${baseQuery} ${condition} ${conditionDelType} ${conditionFilter} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+    const countQuery = `${countBaseQuery} ${condition} ${conditionDelType} ${conditionFilter} ${dateCondition}`;
+    const queryParams: string[] = [];
+
+    if (newFilter.filterValue) {
+      queryParams.push(`%${newFilter.filterValue}%`)
+    }
+
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+
+      connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
+          console.log(query);
+          console.log(queryParams)
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    });
   }
 
   static deleteByIds(product: number[], result: (error: any, response: any) => void) {

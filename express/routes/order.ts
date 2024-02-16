@@ -9,6 +9,9 @@ orderRouter.post("/list", orderController.list);
 orderRouter.post("/all", orderController.orderAll);
 orderRouter.put(`/invoice`, orderController.applyEditedInvoice);
 orderRouter.put(`/cancel`, orderController.cancelOrder);
+orderRouter.post(`/filter`, orderController.filter);
+
+
 orderRouter.post("/findList", orderController.findList);
 orderRouter.post("/findSelectOrderList", orderController.findSelectOrderList);
 orderRouter.post("/findSelectOrderProduct", orderController.selectOrderProductById);
