@@ -241,7 +241,7 @@ class Order {
     });
   }
   // 배송리스트 조회(전체) : JOIN(order | product | delivery)
-  static getOrderList(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+  static getOrderList(currentPage: number, itemsPerPage: number, requestData: any, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
     performTransaction((connection: PoolConnection) => {
@@ -273,7 +273,7 @@ class Order {
         GROUP BY 
             o.order_id
         ) AS subquery ON o.order_id = subquery.order_id
-      WHERE o.orderState < 2
+      WHERE o.orderState < ? AND (o.isCancel = 0 OR o.isCancel IS NULL)
       LIMIT ?, ?  
       `
       ];
@@ -286,20 +286,21 @@ class Order {
           delivery d
         JOIN 
         \`order\` o ON d.order_id = o.order_id
+        WHERE o.orderState < ? AND (o.isCancel = 0 OR o.isCancel IS NULL)
       `;
 
-      connection.query(countQuery, (err, countResult: any) => {
+      connection.query(countQuery, [requestData !== null ? requestData : 2], (err, countResult: any) => {
         if (err) {
           result(err, null);
           return;
         }
-        const totalRows = countResult[0].totalRows
+        const totalRows = countResult[0].totalRows !== 0 ? countResult[0].totalRows : 1 
 
       const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
 
       function executeQuery(queryIndex: number) {
         if (queryIndex < queries.length) {
-          connection.query(queries[queryIndex], [offset, limit], (err, res) => {
+          connection.query(queries[queryIndex], [requestData !== null ? requestData : 2, offset, limit], (err, res) => {
             if (err) {
               console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
               connection.rollback(() => {
@@ -338,6 +339,33 @@ class Order {
     });
     })
   }
+
+  static async updateDeliveryInvoice(orderId: string, newNum: string) {
+    try {
+      const rows = await connection.execute(
+        'UPDATE delivery JOIN \`order\` ON order.order_id = delivery.order_id SET delivery.delivery_num = ?, order.orderState = 2 WHERE order.order_id = ?',
+        [newNum, orderId]
+      );
+      connection.releaseConnection;
+      return rows;
+    } catch (error: any) {
+      throw new Error(`Failed to update delivery state: ${error.message}`);
+    }
+  }
+
+  static async canceleOrder(cancelReason: string, order_id: string) {
+    try {
+      const rows = await connection.execute(
+        'UPDATE \`order\` SET order.isCancel = 1, order.cancelReason = ?  WHERE order.order_id = ?',
+        [cancelReason, order_id]
+      );
+      connection.releaseConnection;
+      return rows;
+    } catch (error: any) {
+      throw new Error(`Failed to update delivery state: ${error.message}`);
+    }
+  }
+
   static deleteByIds(product: number[], result: (error: any, response: any) => void) {
     const query = "DELETE FROM cart_product WHERE cart_product_id IN (?)"
     console.log(query)
