@@ -2,7 +2,7 @@ import express, { Router } from "express"
 import authController from "../controllers/authController";
 import jwtMiddleware from "../middleware/jwtMiddleware";
 
-const authRouter : Router = express.Router()
+const authRouter: Router = express.Router()
 
 // 회원 가입, 로그인, 로그아웃
 authRouter.post("/login", authController.login);
@@ -31,5 +31,6 @@ authRouter.post("/checkCode", authController.checkCode);
 
 /*-------------------JWT 검증--------------------*/
 authRouter.get("/user", jwtMiddleware, authController.user);
+authRouter.post("/verify/admin", authController.verifyAdmin);
 
 export default authRouter;

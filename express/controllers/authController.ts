@@ -343,6 +343,25 @@ const authController = {
       }
     });
   },
+
+  /*----------------------------------관리자 검증-------------------------------------*/
+  verifyAdmin: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token)
+      return res.status(401).json({ message: '로그인 후 이용가능한 서비스입니다.' });
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded;
+      if (req.user.userType_id === 3 || req.user.userType_id === 4) {
+        return res.status(200).json({ message: '인증 되었습니다.', success: true });
+      } else {
+        return res.status(400).json({ message: '인증에 실패하였습니다 :: 관리자가 아닙니다.', success: false });
+      }
+    } catch {
+      res.status(500).json({ success: false, message: "서버 오류 발생" });
+    }
+  }
 }
 
 export default authController
