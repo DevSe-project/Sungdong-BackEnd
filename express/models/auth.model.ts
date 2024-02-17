@@ -181,7 +181,7 @@ class User {
   }
   // 로그인
   static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | Error | null, arg1: any) => void) {
-    connection.query('SELECT * FROM users WHERE userId = ? AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
+    connection.query('SELECT * FROM users WHERE userId = ?  AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
       if (err) {
         console.log("에러 발생: ", err);
         result(err, null);
@@ -306,7 +306,7 @@ class User {
             AND cor_corName LIKE ?
                 AND cor_num LIKE ?
                     AND USER.userType_id LIKE ?
-                        AND INFO.grade LIKE ? `;
+                        AND USER.grade LIKE ? `;
 
     connection.query(query, [`% ${user.cor_ceoName}% `, ` % ${user.cor_corName}% `, ` % ${user.cor_num}% `, ` % ${user.userType_id}% `, ` % ${user.grade}% `], (err: QueryError | Error | null, res: RowDataPacket[]) => {
       if (err) {
@@ -428,9 +428,9 @@ class User {
           // 사용자 정보 업데이트 쿼리 실행
           conn.query(
             `UPDATE users_info
-              SET grade = ?, email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
+              SET email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
               WHERE users_info_id = ?`,
-            [user.grade, user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, user.users_info_id],
+            [user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, user.users_info_id],
             (error: any, results: any, fields: any) => {
               if (error) {
                 conn.rollback(() => {
@@ -456,9 +456,9 @@ class User {
                   // 사용자 기본 정보 업데이트 쿼리 실행
                   conn.query(
                     `UPDATE users
-                              SET userType_id = ?, userId = ?, userPassword = ?
+                              SET grade = ?, userType_id = ?, userId = ?, userPassword = ?
                               WHERE users_id = ?`,
-                    [user.userType_id, user.userId, user.userPassword, user.users_id],
+                    [user.grade, user.userType_id, user.userId, user.userPassword, user.users_id],
                     (error: any, results: any, fields: any) => {
                       if (error) {
                         conn.rollback(() => {
