@@ -13,7 +13,9 @@ const authController = {
     const loadUser = req.body;
 
     try {
-      User.login(loadUser, (err: QueryError | Error | null, data: { users_id: number, userId: any, userPassword: any, userType_id: number } | null) => {
+      User.login(loadUser, (err: QueryError | Error | null, data: {
+        grade: any; users_id: number, userId: any, userPassword: any, userType_id: number 
+} | null) => {
         if (err) {
           console.error(err);
           return res.status(400).send({ message: err.message || "아이디 및 비밀번호를 확인해주세요!" });
@@ -21,7 +23,7 @@ const authController = {
         if (data !== null) {
           const token = jwt.sign({
             userType_id: data.userType_id,
-            users_id: data.users_id
+            users_id: data.users_id,
           }, jwtSecret, { expiresIn: '1h' });
 
           req.user = data;
