@@ -59,7 +59,6 @@ const productController = {
       if (!token) {
         req.user = {
           userType_id: 0,
-          users_id: 'none'
         }
       } else {
       const decoded = jwt.verify(token, jwtSecret);
@@ -76,6 +75,7 @@ const productController = {
       }
     })
     } catch(error){
+      res.clearCookie('jwt_token', { secure: true, sameSite: 'none' });
       return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
     }
   },
