@@ -255,8 +255,7 @@ const authController = {
       cor_corName: req.body.cor_corName,
       cor_ceoName: req.body.cor_ceoName,
       cor_num: req.body.cor_num,
-      userType_id: req.body.userType_id,
-      grade: req.body.grade
+      userType_id: req.body.userType_id
     }
     User.filteredUser(filter, (err: QueryError | Error | null, data: RowDataPacket[] | null) => {
       if (err) {
@@ -353,7 +352,7 @@ const authController = {
     try {
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded;
-      if (req.user.userType_id === 3 || req.user.userType_id === 4) {
+      if (req.user.userType_id === 100) {
         return res.status(200).json({ message: '인증 되었습니다.', success: true });
       } else {
         return res.status(400).json({ message: '인증에 실패하였습니다 :: 관리자가 아닙니다.', success: false });

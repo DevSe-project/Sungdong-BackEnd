@@ -305,10 +305,9 @@ class User {
         WHERE cor_ceoName LIKE ?
             AND cor_corName LIKE ?
                 AND cor_num LIKE ?
-                    AND USER.userType_id LIKE ?
-                        AND USER.grade LIKE ? `;
+                    AND USER.userType_id LIKE ?`;
 
-    connection.query(query, [`% ${user.cor_ceoName}% `, ` % ${user.cor_corName}% `, ` % ${user.cor_num}% `, ` % ${user.userType_id}% `, ` % ${user.grade}% `], (err: QueryError | Error | null, res: RowDataPacket[]) => {
+    connection.query(query, [`% ${user.cor_ceoName}% `, ` % ${user.cor_corName}% `, ` % ${user.cor_num}% `, ` % ${user.userType_id}% `], (err: QueryError | Error | null, res: RowDataPacket[]) => {
       if (err) {
         console.error("에러 발생: ", err);
         result(err, null);
@@ -456,9 +455,9 @@ class User {
                   // 사용자 기본 정보 업데이트 쿼리 실행
                   conn.query(
                     `UPDATE users
-                              SET grade = ?, userType_id = ?, userId = ?, userPassword = ?
+                              SET userType_id = ?, userId = ?, userPassword = ?
                               WHERE users_id = ?`,
-                    [user.grade, user.userType_id, user.userId, user.userPassword, user.users_id],
+                    [user.userType_id, user.userId, user.userPassword, user.users_id],
                     (error: any, results: any, fields: any) => {
                       if (error) {
                         conn.rollback(() => {
