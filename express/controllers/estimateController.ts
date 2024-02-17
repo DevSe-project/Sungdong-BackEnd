@@ -46,8 +46,8 @@ const estimateController = {
                 product_id: item.product_id,
                 category_id: item.category_id,
                 parentsCategory_id: item.parentsCategory_id,
-                estimateBox_price: item.product_price,
-                estimateBox_discount: item.product_discount,
+                estimateBox_price: item.product_amount,
+                estimateBox_discount: item.discount_amount,
                 estimateBox_cnt: item.cnt,
                 estimateBox_selectedOption: item.selectedOption,
               }));
@@ -79,12 +79,15 @@ const estimateController = {
           if (data) {
             return res.status(400).json({ message: "이미 존재하는 상품입니다.", success: false });
           } else {
-            const listMap = [requestData].map((item: { product_id: any; category_id: any; parentsCategory_id: any; product_price: any; product_discount: any; cnt: any; selectedOption: any; }) => ({
+            const listMap = [requestData].map((item: {
+              discount_amount: any;
+              product_amount: any; product_id: any; category_id: any; parentsCategory_id: any; product_price: any; product_discount: any; cnt: any; selectedOption: any; 
+}) => ({
               product_id: item.product_id,
               category_id: item.category_id,
               parentsCategory_id: item.parentsCategory_id,
-              estimateBox_price: item.product_price,
-              estimateBox_discount: item.product_discount,
+              estimateBox_price: item.product_amount,
+              estimateBox_discount: item.discount_amount,
               estimateBox_cnt: item.cnt,
               estimateBox_selectedOption: item.selectedOption,
             }));

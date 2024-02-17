@@ -28,8 +28,8 @@ const orderController = {
         product_id: item.product_id,
         category_id: item.category_id,
         parentsCategory_id: item.parentsCategory_id,
-        cart_price: item.cart_price || item.product_price,
-        cart_discount: item.cart_discount || item.product_discount,
+        cart_price: item.cart_price || item.product_amount,
+        cart_discount: item.cart_discount || item.discount_amount,
         cart_cnt: item.cart_cnt || item.cnt,
         cart_selectedOption: item.cart_selectedOption || item.selectedOption
       }));
@@ -79,7 +79,7 @@ const orderController = {
         parentsCategory_id: item.parentsCategory_id,
         category_id: item.category_id,
         order_cnt: item.cart_cnt,
-        order_productPrice: item.cart_price * item.cart_cnt - (((item.cart_price / 100) * item.cart_discount) * item.cart_cnt),
+        order_productPrice: item.cart_price * item.cart_cnt,
         selectedOption: item.cart_selectedOption
       }))
       const newProduct = {
@@ -94,7 +94,7 @@ const orderController = {
           buildingName: requestData.orderInformation.address.buildingName,
           jibunAddress: requestData.orderInformation.jibunAddress ? requestData.orderInformation.jibunAddress : '',
           order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cart_cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
-            sum + ((item.cart_price * item.cart_cnt) - ((item.cart_price / 100) * item.cart_discount) * item.cart_cnt)
+            sum + (item.cart_price * item.cart_cnt)
             , 3000),
           orderState: 1
         },

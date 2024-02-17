@@ -7,7 +7,7 @@ const performTransaction = db.performTransaction;
 
 class Search {
 
-  static list(search: any, separateSearch:any, currentPage: any, postsPerPage: any, categoryId: any | null, result: (arg0: any, arg1: any) => void) {
+  static list(userType_id:number, search: any, separateSearch:any, currentPage: any, postsPerPage: any, categoryId: any | null, result: (arg0: any, arg1: any) => void) {
     const currentPageNumber = parseInt(currentPage, 10) || 1;
     const postsPerPageNumber = parseInt(postsPerPage, 10) || 5;
 
@@ -23,17 +23,25 @@ class Search {
     const limit = postsPerPageNumber;
 
     const buildQuery = (isCount: boolean, isPrintData: boolean) => {
-      const baseQuery = "SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id";
-      const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
-      const dataBaseQuery = "SELECT product.category_id, product.parentsCategory_id, product.product_brand, product.product_madeIn FROM product JOIN product_option ON product.product_id = product_option.product_id";
-      const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
+      const baseQuery = `
+      SELECT 
+        p.*,
+        po.*, 
+        p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) FROM users_type WHERE userType_id = ?) AS product_amount,
+        ((p.product_price - (p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) FROM users_type WHERE userType_id = ?)))/p.product_price)*100 AS discount_amount
+      FROM product AS p 
+      JOIN product_option AS po 
+        ON p.product_id = po.product_id`;
+      const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product AS p JOIN product_option AS po ON p.product_id = po.product_id";
+      const dataBaseQuery = "SELECT p.category_id, p.parentsCategory_id, p.product_brand, p.product_madeIn FROM product AS p JOIN product_option AS po ON p.product_id = po.product_id";
+      const conditionColumns = ["p.product_id", "p.product_title", "p.product_brand", "p.product_spec", "p.product_model"];
       const conditionSingle = `WHERE (${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")})`;
       const conditionObject = `AND (${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")})`;
-      const conditionFindParentsCategory = `AND product.parentsCategory_id = ?`
-      const conditionFindCategory = `AND product.category_id = ?`
-      const conditionFindBrand = `AND product.product_brand = ?`
-      const conditionFindMadeIn = `AND product.product_madeIn = ?`
-      const orderBy = "ORDER BY product.product_id DESC";
+      const conditionFindParentsCategory = `AND p.parentsCategory_id = ?`
+      const conditionFindCategory = `AND p.category_id = ?`
+      const conditionFindBrand = `AND p.product_brand = ?`
+      const conditionFindMadeIn = `AND p.product_madeIn = ?`
+      const orderBy = "ORDER BY p.product_id DESC";
       const limitClause = "LIMIT ?, ?";
       return `${isCount ? isPrintData ? dataBaseQuery : countBaseQuery : baseQuery} ${conditionSingle} ${conditionObject} ${categoryId !== null ? categoryId.category_id ? conditionFindCategory : categoryId.parentsCategory_id ? conditionFindParentsCategory : categoryId.product_brand ? conditionFindBrand : conditionFindMadeIn : ""} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
     };
@@ -46,14 +54,14 @@ class Search {
     const separateSearchTerm = separateSearch[0];
 
 
-    connection.query(countQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`], (countErr, countResult: any) => {
+    connection.query(countQuery, categoryId !== null ? [userType_id, userType_id, `%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [userType_id, userType_id, `%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`], (countErr, countResult: any) => {
     if (countErr) {
         console.log(countErr);
         result(countErr, null);
         connection.releaseConnection;
         return;
       }
-      connection.query(dataQuery, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`], (dataErr, dataResult: any) => {
+      connection.query(dataQuery, categoryId !== null ? [userType_id, userType_id, `%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn] : [userType_id, userType_id, `%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`], (dataErr, dataResult: any) => {
         if (dataErr) {
           console.log(dataErr);
           result(dataErr, null);
@@ -64,7 +72,7 @@ class Search {
 
         const datas = dataResult;
 
-        connection.query(query, categoryId !== null ? [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn, offset, limit] : [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        connection.query(query, categoryId !== null ? [userType_id, userType_id, `%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`,`%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, categoryId.category_id ? categoryId.category_id : categoryId.parentsCategory_id ? categoryId.parentsCategory_id : categoryId.product_brand ? categoryId.product_brand : categoryId.product_madeIn, offset, limit] : [userType_id, userType_id, `%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, `%${separateSearchTerm.product_id}%`, `%${separateSearchTerm.product_title}%`, `%${separateSearchTerm.product_brand}%`, `%${separateSearchTerm.product_spec}%`, `%${separateSearchTerm.product_model}%`, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
           if (err) {
             console.log("에러 발생: ", err);
             result(err, null);

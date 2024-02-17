@@ -55,12 +55,15 @@ class Product {
     const limit: number = postsPerPage;
     const query = `
     SELECT 
-      p.*, 
-      p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) AS user_discount FROM users_type WHERE userType_id = ?) AS product_amount
+      p.*,
+      po.*, 
+      p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) FROM users_type WHERE userType_id = ?) AS product_amount,
+      ((p.product_price - (p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) FROM users_type WHERE userType_id = ?)))/p.product_price)*100 AS discount_amount
     FROM product AS p 
     JOIN product_option AS po 
       ON p.product_id = po.product_id
     ORDER BY p.product_created DESC LIMIT ?, ?`;
+    
     // 전체 데이터 크기 확인을 위한 쿼리
     const countQuery = "SELECT COUNT(*) as totalRows FROM product";
     connection.query(countQuery, (countErr, countResult: any) => {
@@ -70,7 +73,7 @@ class Product {
         return;
       }
       const totalRows = countResult[0].totalRows;
-      connection.query(query, [userType_id, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+      connection.query(query, [userType_id,userType_id, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
         if (err) {
           console.log("에러 발생: ", err);
           result(err, null);

@@ -44,8 +44,8 @@ const cartController = {
                 product_id: item.product_id,
                 category_id: item.category_id,
                 parentsCategory_id: item.parentsCategory_id,
-                cart_price: item.cart_price || item.product_price,
-                cart_discount: item.cart_discount || item.product_discount,
+                cart_price: item.cart_price || item.product_amount,
+                cart_discount: item.cart_discount || item.discount_amount,
                 cart_cnt: item.cart_cnt || item.estimateBox_cnt || item.cnt,
                 cart_selectedOption: item.selectedOption || item.estimateBox_selectedOption,
               }));
@@ -78,14 +78,16 @@ const cartController = {
             return res.status(400).json({ message: "이미 존재하는 상품입니다.", success: false });
           } else {
             const listMap = [requestData].map((item: {
+              discount_amount: any;
+              product_amount: any;
               estimateBox_cnt: any;
-              estimateBox_selectedOption: any; product_id: any; category_id: any; parentsCategory_id: any; cart_price: any; product_price: any; cart_discount: any; product_discount: any; cart_cnt: any; cnt: any; selectedOption: any;
+              estimateBox_selectedOption: any; product_id: any; category_id: any; parentsCategory_id: any; cart_price: any; cart_discount: any; cart_cnt: any; cnt: any; selectedOption: any;
             }) => ({
               product_id: item.product_id,
               category_id: item.category_id,
               parentsCategory_id: item.parentsCategory_id,
-              cart_price: item.cart_price || item.product_price,
-              cart_discount: item.cart_discount || item.product_discount,
+              cart_price: item.cart_price || item.product_amount,
+              cart_discount: item.cart_discount || item.discount_amount,
               cart_cnt: item.cart_cnt || item.estimateBox_cnt || item.cnt,
               cart_selectedOption: item.selectedOption || item.estimateBox_selectedOption,
             }));

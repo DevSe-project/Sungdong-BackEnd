@@ -3,12 +3,26 @@ import { Request, Response } from "express"
 import Search from "../models/search.model";
 import multer, { Multer } from "multer";
 import path from "path";
+import jwt from 'jsonwebtoken'
+const jwtSecret = 'sung_dong'
 
 const searchController = {
   list: async (req: Request, res: Response) => {
     const currentPage = req.query.page || 1;
     const postsPerPage = req.query.post || 5;
     const requestData = req.body;
+    const token = req.cookies.jwt_token;
+    try{
+      if (!token) {
+        req.user = {
+          userType_id: 0,
+          users_id: 'none'
+        }
+      } else {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      }
+      const userData = req.user;
 
     let searchTerm;
     let separateSearch;
@@ -32,7 +46,7 @@ const searchController = {
     }
     console.log(searchTerm)
     console.log(separateSearch)
-    Search.list(searchTerm, separateSearch, currentPage, postsPerPage, categoryId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Search.list(userData.userType_id, searchTerm, separateSearch, currentPage, postsPerPage, categoryId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
@@ -40,6 +54,9 @@ const searchController = {
         return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
       }
     })
+    } catch(error){
+      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
   },
   upload: async (req: Request, res: Response) => {
     console.log('이미지 업로드 요청 받음');

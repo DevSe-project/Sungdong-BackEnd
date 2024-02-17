@@ -55,12 +55,16 @@ const productController = {
     const currentPage = req.query.page || 1;
     const postsPerPage = req.query.post || 10;
     const token = req.cookies.jwt_token;
-    if (!token) {
-      return res.status(401).json({ message: "로그인 후 사용 가능합니다." })
-    }
     try{
+      if (!token) {
+        req.user = {
+          userType_id: 0,
+          users_id: 'none'
+        }
+      } else {
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      }
       const requestData = req.user;
     // 데이터베이스에서 불러오기
     Product.list(requestData.userType_id, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
