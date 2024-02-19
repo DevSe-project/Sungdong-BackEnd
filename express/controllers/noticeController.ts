@@ -22,9 +22,9 @@ export const noticeController = {
       });
     }
   },
-  allPost: async (req: Request, res: Response) => {
+  selectAllPosts: async (req: Request, res: Response) => {
     try {
-      const result = await Notice.getAll();
+      const result = await Notice.selectAll();
       return res.status(200).send(result);
     } catch (error) {
       console.error(error);
@@ -33,7 +33,7 @@ export const noticeController = {
       });
     }
   },
-  editPost: async (req: Request, res: Response) => {
+  updatePosts: async (req: Request, res: Response) => {
     const postId = req.params.id;
     const updatedContent = req.body.content;
 
@@ -60,7 +60,7 @@ export const noticeController = {
       });
     }
   },
-  deletePost: async (req: Request, res: Response) => {
+  deletePosts: async (req: Request, res: Response) => {
     const postId = req.params.id;
 
     try {
