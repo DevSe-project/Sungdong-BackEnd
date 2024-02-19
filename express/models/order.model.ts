@@ -122,6 +122,60 @@ class Order {
       });
     })
   }
+  static raeList(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT
+    op.order_product_id,
+    p.product_title,
+    p.product_spec,
+    p.product_brand, 
+    op.product_id, 
+    o.order_date, 
+    op.order_cnt, 
+    op.order_productPrice, 
+    d.deliveryType 
+    FROM \`order\` AS o 
+    JOIN order_product AS op ON o.order_id = op.order_id 
+    JOIN product AS p ON p.product_id = op.product_id 
+    JOIN delivery AS d ON d.order_id = o.order_id 
+    WHERE o.users_id = ? AND op.isRae = 0 AND o.isCancel = 0
+    ORDER BY o.order_date DESC LIMIT ?, ?`;
+    // 전체 데이터 크기 확인을 위한 쿼리
+    const countQuery = "SELECT COUNT(*) as totalRows FROM order_product WHERE users_id = ?";
+    connection.query(countQuery, [user_id], (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+      connection.query(query, [user_id, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log(err)
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        }
+        else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    })
+  }
   //가장 최근 회원의 주문 내역에서 주문 상품들 뽑아내기
   static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
     const query = "SELECT * FROM order_product JOIN product ON order_product.product_id = product.product_id WHERE order_id = (SELECT order.order_id FROM `order` JOIN delivery ON order.order_id = delivery.order_id WHERE order.users_id = ? ORDER BY order.order_date DESC LIMIT 1)";

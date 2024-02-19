@@ -5,8 +5,10 @@ const orderRouter: Router = express.Router()
 
 orderRouter.get("/list", orderController.list);
 orderRouter.get("/all", orderController.orderAll);
+orderRouter.get("/rae/list", orderController.raeList);
 orderRouter.post("/list", orderController.list);
 orderRouter.post("/all", orderController.orderAll);
+orderRouter.post("/rae/list", orderController.raeList);
 orderRouter.put(`/invoice`, orderController.applyEditedInvoice);
 orderRouter.put(`/cancel`, orderController.cancelOrder);
 orderRouter.post(`/filter`, orderController.filter);
