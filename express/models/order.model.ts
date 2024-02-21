@@ -134,6 +134,7 @@ class Order {
     p.product_brand, 
     op.product_id, 
     o.order_date, 
+    o.order_id,
     op.order_cnt, 
     op.order_productPrice, 
     d.deliveryType 
