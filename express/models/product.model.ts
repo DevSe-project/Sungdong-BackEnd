@@ -50,24 +50,139 @@ class Product {
       executeQuery(0);
     });
   }
-  static list(result: (arg0: any, arg1: any) => void) {
-    const query = `SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id`;
-    connection.query(query, (err: QueryError | null, res: RowDataPacket[]) => {
-      if (err) {
-        console.log("에러 발생: ", err);
-        result(err, null);
+  static list(userType_id: number, currentPage: any, postsPerPage: any, result: (arg0: any, arg1: any) => void) {
+    const offset: number = (currentPage - 1) * postsPerPage;
+    const limit: number = postsPerPage;
+    const query = `
+    SELECT 
+      p.*,
+      po.*, 
+      p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) FROM users_type WHERE userType_id = ?) AS product_amount,
+      ((p.product_price - (p.product_price * (1-p.product_discount/100) * (SELECT (1-userType_discount/100) FROM users_type WHERE userType_id = ?)))/p.product_price)*100 AS discount_amount
+    FROM product AS p 
+    JOIN product_option AS po 
+      ON p.product_id = po.product_id
+    ORDER BY p.product_created DESC LIMIT ?, ?`;
+    
+    // 전체 데이터 크기 확인을 위한 쿼리
+    const countQuery = "SELECT COUNT(*) as totalRows FROM product";
+    connection.query(countQuery, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
         connection.releaseConnection;
         return;
       }
-      else {
-        // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-        console.log("상품이 갱신되었습니다: ", res);
-        result(null, res);
-        connection.releaseConnection;
-        return;
-      }
-    });
+      const totalRows = countResult[0].totalRows;
+      connection.query(query, [userType_id,userType_id, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        }
+        else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    })
   }
+
+  static filter(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const baseQuery = "SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id";
+    const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
+    
+    const conditionColumns = ["product.product_title", "product.product_brand", "product.product_id"];
+    const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
+    const conditionString = conditions.length > 0 ? "WHERE " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
+    
+
+    const conditionFindParentsCategory = newFilter.parentsCategory_id ? `AND product.parentsCategory_id = ?` : '';
+    const conditionFindCategory = newFilter.category_id ? `AND product.category_id = ?` : '';
+    const conditionProductState = newFilter.product_state ? `AND product.product_state IN (?)` : '';
+    const conditionProductSupply = newFilter.product_supply ? `AND product.product_supply < ?` : '';
+    const dateCondition = newFilter.dateType !== '' ? 
+    newFilter.dateType === "created" ? 
+        `AND product.product_created BETWEEN '${newFilter.dateStart} 00:00:00' AND '${newFilter.dateEnd} 23:59:59'` : 
+        `AND product.product_updated BETWEEN '${newFilter.dateStart}' AND '${newFilter.dateEnd}'` : 
+    '';
+
+
+    const orderBy = "ORDER BY product.product_id DESC";
+    
+    const query = `${baseQuery} ${conditionString} ${conditionFindParentsCategory} ${conditionFindCategory} ${conditionProductState} ${conditionProductSupply} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+    const countQuery = `${countBaseQuery} ${conditionString} ${conditionFindParentsCategory} ${conditionFindCategory} ${conditionProductState} ${conditionProductSupply} ${dateCondition}`;
+    const queryParams = [
+        `%${newFilter.product_title || ''}%`,
+        `%${newFilter.product_brand || ''}%`,
+        `%${newFilter.product_id || ''}%`,
+    ];
+
+    if (newFilter.parentsCategory_id) {
+        queryParams.push(newFilter.parentsCategory_id);
+    }
+
+    if (newFilter.category_id) {
+        queryParams.push(newFilter.category_id);
+    }
+
+    if (newFilter.product_state) {
+        queryParams.push(newFilter.product_state);
+    }
+
+    if (newFilter.product_supply) {
+        queryParams.push(newFilter.product_supply);
+    }
+
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+        if (countErr) {
+            result(countErr, null);
+            connection.releaseConnection;
+            return;
+        }
+        const totalRows = countResult[0].totalRows;
+        console.log(totalRows)
+        console.log(query)
+        console.log(queryParams)
+
+        connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+            if (err) {
+                console.log("에러 발생: ", err);
+                result(err, null);
+                connection.releaseConnection;
+                return;
+            } else {
+                const totalPages = Math.ceil(totalRows / postsPerPage);
+
+                const responseData = {
+                    data: res,
+                    currentPage: currentPage,
+                    totalPages: totalPages,
+                }
+                // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+                console.log("상품이 갱신되었습니다: ", responseData);
+                result(null, responseData);
+                connection.releaseConnection;
+                return;
+            }
+        });
+    });
+}
+
 
   static edit(newProduct: any, result: (error: any, response: any) => void) {
     performTransaction((connection: PoolConnection) => {

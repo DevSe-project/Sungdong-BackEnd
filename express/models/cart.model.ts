@@ -7,81 +7,47 @@ const performTransaction = db.performTransaction;
 
 class Cart {
   // category 튜플 추가
-  static create(newProduct: any, result: (arg0: any, arg1: any) => void) {
-    console.log(newProduct);
-    performTransaction((connection: PoolConnection) => {
-      const queries = [
-        "UPDATE cart SET ? WHERE users_id = ?",
-        "INSERT INTO cart_product SET ?, cart_id = (SELECT cart_id FROM cart WHERE users_id = ?)",
-      ];
-      const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
-      function executeQuery(queryIndex: number) {
-        if (queryIndex < queries.length) {
-          const query = queries[queryIndex];
+  static create(newProducts: any, userId:any, result: (error: any, results: any) => void) {
+    const query = "INSERT INTO cart_product SET ?, cart_id = (SELECT cart_id FROM cart WHERE users_id = ?)";
+    const promises: Promise<any>[] = [];
+  
+    if (!Array.isArray(newProducts.product1)) {
+      console.error("Invalid newProduct format. 'product1' should be an array.");
+      result("Invalid newProduct format.", null);
+      return;
+    }
 
-          // 2번째 쿼리만 객체의 개수만큼 반복하기 위한 조건
-          if (queryIndex === 1 && newProduct[0].product2 && newProduct[0].product2.length > 0) {
-            // 2번째 쿼리가 모두 수행될 때 넘기도록 Promise화
-            const promises = newProduct[0].product2.map((item: any) => {
-              return new Promise((resolve, reject) => {
-                connection.query(query, [item, newProduct[1]], (err, res) => {
-                  if (err) {
-                    reject(err);
-                  } else {
-                    resolve(res);
-                  }
-                });
-              });
-            });
+    newProducts.product1.forEach((product: any) => {
+      const values = {
+        product_id: product.product_id,
+        category_id: product.category_id,
+        parentsCategory_id: product.parentsCategory_id,
+        cart_price: product.cart_price,
+        cart_discount: product.cart_discount,
+        cart_cnt: product.cart_cnt,
+        cart_selectedOption: product.cart_selectedOption,
+      };
 
-            // 2번째 쿼리가 전부 수행되면 푸시 & 커밋
-            Promise.all(promises)
-              .then((resArray) => {
-                results.push(resArray);
-                executeQuery(queryIndex + 1); // Proceed to the next query
-              })
-              .catch((err) => {
-                console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                connection.rollback(() => {
-                  result(err, null);
-                  connection.release();
-                });
-              });
+      promises.push(new Promise((resolve, reject) => {
+        connection.query(query, [values, userId], (err, res) => {
+          if (err) {
+            reject(err);
           } else {
-            connection.query(queries[queryIndex], [newProduct[0][`product${queryIndex + 1}`], newProduct[1]], (err, res) => {
-
-              if (err) {
-                console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
-                connection.rollback(() => {
-                  result(err, null);
-                  connection.release();
-                  return;
-                });
-              } else {
-                results.push(res);
-                executeQuery(queryIndex + 1);
-              }
-            });
+            resolve(res);
           }
-        } else {
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              console.log('커밋 중 에러 발생: ', commitErr);
-              connection.rollback(() => {
-                result(commitErr, null);
-                connection.release();
-                return;
-              });
-            } else {
-              console.log('트랜잭션 성공적으로 완료: ', results);
-              result(null, results);
-              connection.release();
-            }
-          });
-        }
-      }
-      executeQuery(0);
+        });
+      }));
     });
+
+    Promise.all(promises)
+      .then((resArray) => {
+        console.log('쿼리 실행 성공: ', resArray);
+        result(null, resArray);
+      })
+      .catch((err) => {
+        console.log('쿼리 실행 중 에러 발생: ', err);
+        result(err, null);
+      });
   }
   static list(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;

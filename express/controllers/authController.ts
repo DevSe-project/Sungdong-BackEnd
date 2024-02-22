@@ -13,7 +13,9 @@ const authController = {
     const loadUser = req.body;
 
     try {
-      User.login(loadUser, (err: QueryError | Error | null, data: { users_id: number, userId: any, userPassword: any, userType_id: number } | null) => {
+      User.login(loadUser, (err: QueryError | Error | null, data: {
+        grade: any; users_id: number, userId: any, userPassword: any, userType_id: number 
+} | null) => {
         if (err) {
           console.error(err);
           return res.status(400).send({ message: err.message || "아이디 및 비밀번호를 확인해주세요!" });
@@ -21,7 +23,7 @@ const authController = {
         if (data !== null) {
           const token = jwt.sign({
             userType_id: data.userType_id,
-            users_id: data.users_id
+            users_id: data.users_id,
           }, jwtSecret, { expiresIn: '1h' });
 
           req.user = data;
@@ -89,7 +91,11 @@ const authController = {
       users5: {
         users_id: commonUserId,
         userType_id: req.body.userType_id,
-      }
+      },
+      users6: {
+        users_id: commonUserId,
+        userType_id: req.body.userType_id,
+      },
     };
 
     // 데이터베이스에 저장
@@ -123,6 +129,29 @@ const authController = {
       }
       else {
         User.findAllUserInfo(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+          if (err) {
+            return res.status(500).send({ message: err });
+          } else {
+            return res.status(200).json({ message: '인증이 완료되었습니다.', success: true, data });
+          }
+        });
+      }
+    })
+  },
+
+  // Welcome Module
+  welcomeInfo: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인이 되지 않아 정보를 불러들일 수 없습니다." });
+    }
+
+    jwt.verify(token, jwtSecret, (err: any, user: any) => {
+      if (err) {
+        return res.status(403).json({ message: "재 로그인이 필요합니다." })
+      }
+      else {
+        User.welcomeModuleInfo(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
           if (err) {
             return res.status(500).send({ message: err });
           } else {
@@ -228,8 +257,7 @@ const authController = {
       cor_corName: req.body.cor_corName,
       cor_ceoName: req.body.cor_ceoName,
       cor_num: req.body.cor_num,
-      userType_id: req.body.userType_id,
-      grade: req.body.grade
+      userType_id: req.body.userType_id
     }
     User.filteredUser(filter, (err: QueryError | Error | null, data: RowDataPacket[] | null) => {
       if (err) {
@@ -255,33 +283,14 @@ const authController = {
   },
   // 고객 정보 업데이트 컨트롤러
   userUpdate: async (req: Request, res: Response) => {
-
-    const currentPage = parseInt(req.query.page as string, 10) || 1;
-    try {
-      const fetchedData = req.body;
-
-      // 유효성 검사: 변경된 배송 상태 데이터가 유효한지 확인
-      if (!Array.isArray(fetchedData)) {
-        return res.status(400).json({ message: '잘못된 형식입니다.' });
+    const user = req.body;
+    User.updateUser(user, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      if (err) {
+        return res.status(500).send({ message: err.message || "고객 정보를 수정하는 중 서버 오류가 발생했습니다." });
+      } else {
+        return res.status(200).json({ message: "성공적으로 고객 정보가 수정되었습니다.", success: true, data })
       }
-
-      // Promise.all을 사용하여 모든 유저 정보를 한 번에 업데이트
-      await Promise.all(fetchedData.map(async (userId: string) => {
-        await User.updateUser(userId, (err, data) => {
-          if (err) {
-            console.error('고객 정보 수정 중 오류가 발생했습니다: ', err);
-            return res.status(500).json({ message: '고객 정보 업데이트 중 오류가 발생했습니다.' });
-          }
-          console.log('고객 정보가 성공적으로 업데이트되었습니다.');
-        });
-      }));
-
-      // 모든 유저 정보가 업데이트되었을 때 성공 응답 반환
-      return res.status(200).json({ message: '모든 유저 정보가 성공적으로 업데이트되었습니다.' });
-    } catch (error) {
-      console.error('고객 정보 수정 중 오류가 발생했습니다: ', error);
-      return res.status(500).json({ message: '고객 정보 업데이트 중 오류가 발생했습니다.' });
-    }
+    })
   },
 
   // 유저 삭제 컨트롤러
@@ -335,6 +344,25 @@ const authController = {
       }
     });
   },
+
+  /*----------------------------------관리자 검증-------------------------------------*/
+  verifyAdmin: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token)
+      return res.status(401).json({ message: '로그인 후 이용가능한 서비스입니다.' });
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded;
+      if (req.user.userType_id === 100) {
+        return res.status(200).json({ message: '인증 되었습니다.', success: true });
+      } else {
+        return res.status(400).json({ message: '인증에 실패하였습니다 :: 관리자가 아닙니다.', success: false });
+      }
+    } catch {
+      res.status(500).json({ success: false, message: "서버 오류 발생" });
+    }
+  }
 }
 
 export default authController

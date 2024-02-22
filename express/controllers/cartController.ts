@@ -18,22 +18,13 @@ const cartController = {
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
       const requestData = req.body;
-      const today = new Date();
-      const formattedDate = new Intl.DateTimeFormat('en-Us', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(today);
-      const [month, day, year] = formattedDate.split('/');
-      const rearrangedDate = `${year}-${month}-${day}`;
-
 
       // 중복 체크를 위해 데이터베이스에서 검색
       if (Array.isArray(requestData)) {
         // If requestData is an array, iterate through each item
         const duplicateCheckPromises = requestData.map(item =>
           new Promise((resolve, reject) => {
-            Cart.findOne([req.user.users_id, item.product_id, item.category_id, item.selectedOption], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            Cart.findOne([req.user.users_id, item.product_id, item.category_id, (item.selectedOption || item.estimateBox_selectedOption)], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
               if (err) {
                 reject(err);
               } else {
@@ -53,18 +44,15 @@ const cartController = {
                 product_id: item.product_id,
                 category_id: item.category_id,
                 parentsCategory_id: item.parentsCategory_id,
-                cart_price: item.cart_price || item.product_price,
-                cart_discount: item.cart_discount || item.product_discount,
-                cart_cnt: item.cart_cnt || item.cnt,
-                cart_selectedOption: item.selectedOption,
+                cart_price: item.cart_price || item.product_amount,
+                cart_discount: item.cart_discount || item.discount_amount,
+                cart_cnt: item.cart_cnt || item.estimateBox_cnt || item.cnt,
+                cart_selectedOption: item.selectedOption || item.estimateBox_selectedOption,
               }));
               const newProduct = {
-                product1: {
-                  cart_updated: rearrangedDate,
-                },
-                product2: listMap
+                product1: listMap
               };
-              Cart.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+              Cart.create(newProduct, req.user.users_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
                 // 클라이언트에서 보낸 JSON 데이터를 받음
                 if (err)
                   return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
@@ -79,7 +67,7 @@ const cartController = {
           });
       } else {
         // If requestData is a single object
-        Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, requestData.selectedOption], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        Cart.findOne([req.user.users_id, requestData.product_id, requestData.category_id, (requestData.selectedOption || requestData.estimateBox_selectedOption)], (err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
           if (err) {
             // 서버 오류가 발생한 경우
             return res.status(500).send({ message: err || "서버 오류가 발생했습니다." });
@@ -89,21 +77,24 @@ const cartController = {
           if (data) {
             return res.status(400).json({ message: "이미 존재하는 상품입니다.", success: false });
           } else {
+            const listMap = [requestData].map((item: {
+              discount_amount: any;
+              product_amount: any;
+              estimateBox_cnt: any;
+              estimateBox_selectedOption: any; product_id: any; category_id: any; parentsCategory_id: any; cart_price: any; cart_discount: any; cart_cnt: any; cnt: any; selectedOption: any;
+            }) => ({
+              product_id: item.product_id,
+              category_id: item.category_id,
+              parentsCategory_id: item.parentsCategory_id,
+              cart_price: item.cart_price || item.product_amount,
+              cart_discount: item.cart_discount || item.discount_amount,
+              cart_cnt: item.cart_cnt || item.estimateBox_cnt || item.cnt,
+              cart_selectedOption: item.selectedOption || item.estimateBox_selectedOption,
+            }));
             const newProduct = {
-              product1: {
-                cart_updated: rearrangedDate,
-              },
-              product2: {
-                product_id: requestData.product_id,
-                category_id: requestData.category_id,
-                parentsCategory_id: requestData.parentsCategory_id,
-                cart_price: requestData.cart_price || requestData.product_price,
-                cart_discount: requestData.cart_discount || requestData.product_discount,
-                cart_cnt: requestData.cart_cnt || requestData.cnt,
-                cart_selectedOption: requestData.selectedOption,
-              },
+              product1: listMap
             };
-            Cart.create([newProduct, req.user.users_id], (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+            Cart.create(newProduct, req.user.users_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
               // 클라이언트에서 보낸 JSON 데이터를 받음
               if (err)
                 return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });

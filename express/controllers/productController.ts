@@ -3,6 +3,8 @@ import { Request, Response } from "express"
 import Product from "../models/product.model";
 import multer, { Multer } from "multer";
 import path from "path";
+import jwt from 'jsonwebtoken'
+const jwtSecret = 'sung_dong'
 
 const productController = {
   create: async (req: Request, res: Response) => {
@@ -50,8 +52,21 @@ const productController = {
     })
   },
   list: async (req: Request, res: Response) => {
+    const currentPage = req.query.page || 1;
+    const postsPerPage = req.query.post || 10;
+    const token = req.cookies.jwt_token;
+    try{
+      if (!token) {
+        req.user = {
+          userType_id: 0,
+        }
+      } else {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      }
+      const requestData = req.user;
     // 데이터베이스에서 불러오기
-    Product.list((err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Product.list(requestData.userType_id, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
@@ -59,6 +74,10 @@ const productController = {
         return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
       }
     })
+    } catch(error){
+      res.clearCookie('jwt_token', { secure: true, sameSite: 'none' });
+      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
   },
   edit: async (req: Request, res: Response) => {
     const requestData = req.body;
@@ -147,6 +166,32 @@ const productController = {
         console.error('상품의 재고를 업데이트하는 중 오류가 발생했습니다:', error);
         return res.status(500).send({ message: error || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
       });
+  },
+
+  filter: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string) || 1;
+    const postsPerPage = parseInt(req.query.post as string) || 10;
+    const requestData = req.body;
+    const newFilter = {
+      product_title: requestData.product_title || '',
+      product_brand: requestData.product_brand || '',
+      product_id: requestData.product_id || '',
+      product_state: requestData.state || '',
+      parentsCategory_id: requestData.category.middleId || '',
+      category_id: requestData.category.lowId || '',
+      product_supply: requestData.product_supply || '',
+      dateType: requestData.dateType,
+      dateStart: requestData.date.start,
+      dateEnd: requestData.date.end
+    }
+    Product.filter(newFilter,currentPage,postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 조회가 완료 되었습니다.', success: true, data });
+      }
+    })
   },
   delete: async (req: Request, res: Response) => {
     const requestData = req.params.id;
