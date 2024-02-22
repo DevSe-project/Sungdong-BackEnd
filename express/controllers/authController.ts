@@ -14,8 +14,8 @@ const authController = {
 
     try {
       User.login(loadUser, (err: QueryError | Error | null, data: {
-        grade: any; users_id: number, userId: any, userPassword: any, userType_id: number 
-} | null) => {
+        grade: any; users_id: number, userId: any, userPassword: any, userType_id: number
+      } | null) => {
         if (err) {
           console.error(err);
           return res.status(400).send({ message: err.message || "아이디 및 비밀번호를 확인해주세요!" });
@@ -239,11 +239,17 @@ const authController = {
       }
     });
   },
-  userAllOfPage: async (req: Request, res: Response) => {
+
+  /**
+   * currentPage(현재 페이지 번호), itemsPerPage(페이지 당 Post개수)에 따른 조회를 합니다.
+   * @param req 
+   * @param res 
+   */
+  selectAll: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1;
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
 
-    User.getFindUserIfCondition(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    User.selectAllToPageNumber(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "고객정보를 갱신하는 중 서버 오류가 발생했 습니다." });
@@ -252,6 +258,20 @@ const authController = {
       }
     })
   },
+
+ /**
+ * 고객 정보를 필터링합니다.
+ * <필터링 조건>
+ * - cor_corName(users_corInfo): 상호명/업체명
+ * - cor_ceoName(users_corInfo): 대표자명
+ * - cor_num(users_corInfo): 연락처
+ * - userType_id(users): 고객 등급
+ * - name(users_info) : 담당자
+ * 
+ * @param {Request} req - 요청 객체
+ * @param {Response} res - 응답 객체
+ * @returns {Promise<void>} 비동기 처리를 위한 프로미스 객체입니다.
+ */
   userFilter: async (req: Request, res: Response) => {
     const filter = {
       cor_corName: req.body.cor_corName,
@@ -267,6 +287,12 @@ const authController = {
       }
     });
   },
+
+  /**
+   * 
+   * @param req 
+   * @param res 
+   */
   userSort: async (req: Request, res: Response) => {
     const filter = {
       first: req.body.first,
@@ -281,7 +307,12 @@ const authController = {
       }
     });
   },
-  // 고객 정보 업데이트 컨트롤러
+
+  /**
+   * 고객 정보 업데이트
+   * @param req 
+   * @param res 
+   */
   userUpdate: async (req: Request, res: Response) => {
     const user = req.body;
     User.updateUser(user, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
@@ -293,7 +324,12 @@ const authController = {
     })
   },
 
-  // 유저 삭제 컨트롤러
+
+  /**
+   * 고객 정보 삭제
+   * @param req 
+   * @param res 
+   */
   userDel: async (req: Request, res: Response) => {
     const usersId = req.params.ids.split(',').map(String);
     User.removeUser(usersId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
@@ -308,6 +344,12 @@ const authController = {
 
 
   /*----------------------------------코드 관련-------------------------------------*/
+
+  /**
+   * 모든 코드 조회
+   * @param req 
+   * @param res 
+   */
   getAllCode: async (req: Request, res: Response) => {
     User.getAllCode((err: QueryError | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       if (err) {
@@ -317,6 +359,12 @@ const authController = {
       }
     });
   },
+
+  /**
+   * 코드 생성
+   * @param req 
+   * @param res 
+   */
   generateCode: async (req: Request, res: Response) => {
     const setCode = {
       user_code: shortid.generate()
@@ -329,6 +377,13 @@ const authController = {
       }
     });
   },
+
+  /**
+   * 코드 유효성 체크
+   * 사용처: login페이지의 code input modal창
+   * @param req 
+   * @param res 
+   */
   checkCode: async (req: Request, res: Response) => {
     const code = req.body.user_code
     User.checkCode(code, (err: QueryError | Error | string | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
@@ -346,6 +401,12 @@ const authController = {
   },
 
   /*----------------------------------관리자 검증-------------------------------------*/
+
+  /**
+   * cookie의 jwt_token에 담겨있는 userTpye_id의 값이 100인지에 따른 관리자 검증을 진행
+   * @param req 
+   * @param res 
+   */
   verifyAdmin: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token)
