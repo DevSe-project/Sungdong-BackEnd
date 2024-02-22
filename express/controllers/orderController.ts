@@ -96,7 +96,7 @@ const orderController = {
           order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cart_cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
             sum + (item.cart_price * item.cart_cnt)
             , 3000),
-          orderState: 1
+          orderState: requestData.orderInformation.order_payRoute === 'CMS' ? 1 : 0
         },
         product2: orderListMap,
         product3: {
@@ -346,13 +346,13 @@ const orderController = {
   },
   
   delete: async (req: Request, res: Response) => {
-    const productIds = req.params.ids.split(',').map(Number);
-    Order.deleteByIds(productIds, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    const ids = req.params.ids.split(',').map(String);
+    Order.deleteByIds(ids, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
       else {
-        return res.status(200).json({ message: '성공적으로 상품 삭제가 완료 되었습니다.', success: true, data });
+        return res.status(200).json({ message: '성공적으로 주문 삭제가 완료 되었습니다.', success: true, data });
       }
     })
   }

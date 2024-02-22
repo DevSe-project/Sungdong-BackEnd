@@ -134,6 +134,7 @@ class Order {
     p.product_brand, 
     op.product_id, 
     o.order_date, 
+    o.order_id,
     op.order_cnt, 
     op.order_productPrice, 
     d.deliveryType 
@@ -508,11 +509,9 @@ class Order {
     });
   }
 
-  static deleteByIds(product: number[], result: (error: any, response: any) => void) {
-    const query = "DELETE FROM cart_product WHERE cart_product_id IN (?)"
-    console.log(query)
-    console.log(product)
-    connection.query(query, [product], (err, res) => {
+  static deleteByIds(ids: any, result: (error: any, response: any) => void) {
+    const query = "DELETE FROM \`order\` WHERE order_id IN (?)"
+    connection.query(query, ids, (err, res) => {
       if (err) {
         console.log(`쿼리 실행 중 에러 발생: `, err);
         result(err, null);
