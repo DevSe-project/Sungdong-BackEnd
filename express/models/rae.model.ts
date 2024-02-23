@@ -7,11 +7,12 @@ const performTransaction = db.performTransaction;
 
 class Rae {
   // category 튜플 추가
-  static create(newProduct: any, result: (arg0: any, arg1: any) => void) {
+  static create(newProduct: any, changedRaeStatus: any, result: (arg0: any, arg1: any) => void) {
     performTransaction((connection: PoolConnection) => {
       const queries = [
         "INSERT INTO rae SET ?",
         "INSERT INTO rae_product SET ?",
+        "UPDATE order_product SET isRae = 1 WHERE order_product_id IN (?)"
       ];
 
       const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
@@ -48,7 +49,22 @@ class Rae {
                   connection.release();
                 });
               });
-          } else {
+          }
+          if(queryIndex === 2){
+            connection.query(query, [changedRaeStatus], (err, res) => {
+              if (err) {
+                console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
+                connection.rollback(() => {
+                  result(err, null);
+                  connection.release();
+                });
+              } else {
+                results.push(res);
+                executeQuery(queryIndex + 1);
+              }
+            });
+          }
+          else {
             // 나머지 쿼리문 수행
             connection.query(query, [newProduct[`product${queryIndex + 1}`]], (err, res) => {
               if (err) {
@@ -89,7 +105,7 @@ class Rae {
     // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
     const query = "SELECT * FROM rae JOIN rae_product ON rae.rae_id = rae_product.rae_id JOIN order_product ON order_product.order_product_id = rae_product.order_product_id JOIN product ON product.product_id = order_product.product_id WHERE rae.users_id = ? ORDER BY rae.rae_requestDate DESC LIMIT ?, ?";
     // 전체 데이터 크기 확인을 위한 쿼리
-    const countQuery = "SELECT COUNT(*) as totalRows FROM rae WHERE users_id = ?";
+    const countQuery = "SELECT COUNT(*) as totalRows FROM rae JOIN rae_product ON rae.rae_id = rae_product.rae_id WHERE rae.users_id = ?";
     connection.query(countQuery, [user_id], (countErr, countResult: any) => {
       if (countErr) {
         result(countErr, null);
@@ -120,6 +136,92 @@ class Rae {
         }
       });
     })
+  }
+
+  static adminList(currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT 
+      rae.*,
+      IFNULL(subquery.product_length, 0) AS product_length,
+      product_title,
+      corName
+    FROM
+      rae
+    JOIN (
+      SELECT 
+          rae.rae_id,
+          uc.cor_corName AS corName,
+          COUNT(*) AS product_length,
+          MAX(p.product_title) AS product_title  
+        FROM 
+          rae
+        JOIN 
+          rae_product AS rp ON rae.rae_id = rp.rae_id 
+        JOIN
+          order_product AS op ON rp.order_product_id = op.order_product_id
+        JOIN 
+          product AS p ON op.product_id = p.product_id
+        JOIN 
+          users_corInfo AS uc ON uc.users_id = rae.users_id
+        GROUP BY 
+          rae.rae_id, uc.cor_corName
+      ) AS subquery 
+      ON rae.rae_id = subquery.rae_id
+      ORDER BY rae.rae_id DESC LIMIT ?, ?`;
+    const countQuery = "SELECT COUNT(*) as totalRows FROM rae";
+    connection.query(countQuery, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+      connection.query(query, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log(err)
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        }
+        else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    })
+  }
+
+  //특정 주문의 주문 상품들 출력하기
+  static selectProductById(order_id: any, result: (arg0: any, arg1: any) => void) {
+    const query = "SELECT * FROM rae JOIN rae_product ON rae.rae_id = rae_product.rae_id JOIN order_product ON order_product.order_product_id = rae_product.order_product_id JOIN product ON order_product.product_id = product.product_id WHERE rae.rae_id IN (?)";
+    connection.query(query, [order_id], (err: QueryError | null, res: RowDataPacket[]) => {
+      if (err) {
+        console.log("에러 발생: ", err);
+        result(err, null);
+        connection.releaseConnection;
+        return;
+      }
+      else {
+        // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+        console.log("상품이 갱신되었습니다: ", res);
+        result(null, res);
+        connection.releaseConnection;
+        return;
+      }
+    });
   }
 
   static filter(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
