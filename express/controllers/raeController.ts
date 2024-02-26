@@ -54,6 +54,7 @@ const RaeController = {
       }) => (
         item.order_product_id
       ))
+
       const newProduct = {
         product1: {
           rae_id: newId,
@@ -129,15 +130,23 @@ const RaeController = {
     }
   },
 
+  /**
+   * @상품불러오기
+   * - 단일 반품/교환 ID의 상품 불러오기
+   *  * rae 리스트에서 하나를 클릭했을 때 발현
+   * @param req 클라이언트에서 받아오는 데이터 Request 객체 (req.body.rae_id - 단일 rae_id: rae_id가 포함되어 있음)
+   * @param res 클라이언트로 보내는 데이터 Response 객체
+   * @returns HTTP STATUS에 따른 결과물 보고 (500 - 서버에러, 200 - 성공)
+   */
   selectOrderProductById: async (req: Request, res: Response) => {
     try {
       // 데이터베이스에서 불러오기
       Rae.selectProductById(req.body.rae_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
         // 클라이언트에서 보낸 JSON 데이터를 받음
         if (err)
-          return res.status(500).send({ message: err.message || "주문 내역을 갱신 중 서버 오류가 발생했습니다." });
+          return res.status(500).send({ message: err.message || "반품/교환 내역을 갱신 중 서버 오류가 발생했습니다." });
         else {
-          return res.status(200).json({ message: '성공적으로 주문 내역을 불러왔습니다.', success: true, data });
+          return res.status(200).json({ message: '성공적으로 반품/교환 내역을 불러왔습니다.', success: true, data });
         }
       })
     } catch (error) {
@@ -145,21 +154,76 @@ const RaeController = {
     }
   },
 
+  /**
+   * - 여러 반품/교환 ID의 상품들 불러오기
+   *  * 완료처리, 취소처리, 처리상태 Modal에서 발현
+   * @param req 클라이언트에서 받아오는 데이터 Request 객체 (req.body - rae_id가 여러 개 있는 객체)
+   * @param res 클라이언트로 보내는 데이터 Response 객체
+   * @returns HTTP STATUS에 따른 결과물 보고 (500 - 서버에러, 200 - 성공)
+   */
   selectOrderProductByIds: async (req: Request, res: Response) => {
     try {
       // 데이터베이스에서 불러오기
       Rae.selectProductById(req.body, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
         // 클라이언트에서 보낸 JSON 데이터를 받음
         if (err)
-          return res.status(500).send({ message: err.message || "주문 내역을 갱신 중 서버 오류가 발생했습니다." });
+          return res.status(500).send({ message: err.message || "반품/교환 내역을 갱신 중 서버 오류가 발생했습니다." });
         else {
-          return res.status(200).json({ message: '성공적으로 주문 내역을 불러왔습니다.', success: true, data });
+          return res.status(200).json({ message: '성공적으로 반품/교환 내역을 불러왔습니다.', success: true, data });
         }
       })
     } catch (error) {
       return res.status(500).json({ message: '예기치 못한 오류가 발생했습니다.' });
     }
   },
+
+  /**
+   * - 여러 반품/교환 ID의 상태 처리하기
+   *  * 처리 상태 Modal에서 발현
+   * @param req 클라이언트에서 받아오는 데이터 Request 객체 (req.body - raeState와 rae_id 키 값이 여러 개 있는 객체)
+   * @param res 클라이언트로 보내는 데이터 Response 객체
+   * @returns HTTP STATUS에 따른 결과물 보고 (500 - 서버에러, 200 - 성공)
+   */
+  changeStatusbyId: async (req: Request, res: Response) => {
+    try {
+      // 데이터베이스에서 불러오기
+      Rae.changeStatusbyId(req.body, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "반품/교환 내역을 갱신 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 반품/교환 내역을 불러왔습니다.', success: true, data });
+        }
+      })
+    } catch (error) {
+      return res.status(500).json({ message: '예기치 못한 오류가 발생했습니다.' });
+    }
+  },
+
+/**
+ * - 여러 반품/교환 ID의 취소 처리하기
+ *  * 취소 처리 Modal에서 발현
+ * @param req 클라이언트에서 받아오는 데이터 Request 객체 (req.body - raeState와 rae_id, rae_cancelReason 키 값이 여러 개 있는 객체)
+ * @param res 클라이언트로 보내는 데이터 Response 객체
+ * @returns HTTP STATUS에 따른 결과물 보고 (500 - 서버에러, 200 - 성공)
+ */
+  changeCancelbyId: async (req: Request, res: Response) => {
+    try {
+      // 데이터베이스에서 불러오기
+      Rae.changeCancelbyId(req.body, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "반품/교환 내역을 갱신 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 반품/교환 내역을 불러왔습니다.', success: true, data });
+        }
+      })
+    } catch (error) {
+      return res.status(500).json({ message: '예기치 못한 오류가 발생했습니다.' });
+    }
+  },
+
+
 
   filter: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string) || 1;
