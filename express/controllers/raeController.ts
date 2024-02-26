@@ -232,7 +232,9 @@ const RaeController = {
     const newFilter = {
       selectFilter: requestData.selectFilter || '',
       filterValue: requestData.filterValue || '',
-      deliveryType: requestData.deliveryType || '',
+      raeState: requestData.raeState || '',
+      rae_type: requestData.rae_type || '',
+      raeDateType: requestData.raeDateType || '',
       dateStart: requestData.date.start,
       dateEnd: requestData.date.end
     }

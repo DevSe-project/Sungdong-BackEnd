@@ -27,7 +27,7 @@ class Rae {
             const promises = newProduct.product2.map((item: any) => {
               return new Promise((resolve, reject) => {
                 connection.query(query, [item], (err, res) => {
-                  if (err) { 
+                  if (err) {
                     reject(err);
                   } else {
                     resolve(res);
@@ -50,7 +50,7 @@ class Rae {
                 });
               });
           }
-          else if(queryIndex === 2){
+          else if (queryIndex === 2) {
             connection.query(query, [changedRaeStatus], (err, res) => {
               if (err) {
                 console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
@@ -226,10 +226,10 @@ class Rae {
 
   //특정 rae_id들의 상태 변경하기
   static changeStatusbyId(obj: any, result: (arg0: any, arg1: any) => void) {
-    const query = "UPDATE rae SET raeState = ?, rae_cancelReason = NULL WHERE rae_id = ?";
+    const query = "UPDATE rae SET raeState = ?, rae_checkDate = ?,rae_cancelReason = NULL WHERE rae_id = ?";
     const promises = obj.map((item: any) => {
       return new Promise((resolve, reject) => {
-        connection.query(query, [item.raeState, item.rae_id], (err, res) => {
+        connection.query(query, [item.raeState, new Date(), item.rae_id], (err, res) => {
           if (err) {
             reject(err);
           } else {
@@ -251,78 +251,113 @@ class Rae {
   }
 
   //특정 rae_id들에 해당하는 것들 취소 처리하기
-static changeCancelbyId(obj: any, result: (arg0: any, arg1: any) => void) {
-  const query = "UPDATE rae SET raeState = ?, rae_cancelReason = ? WHERE rae_id = ?";
-  const promises = obj.map((item: any) => {
-    return new Promise((resolve, reject) => {
-      connection.query(query, [item.raeState, item.rae_cancelReason, item.rae_id], (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
+  static changeCancelbyId(obj: any, result: (arg0: any, arg1: any) => void) {
+    const query = "UPDATE rae SET raeState = ?, rae_cancelReason = ?, rae_checkDate = ? WHERE rae_id = ?";
+    const promises = obj.map((item: any) => {
+      return new Promise((resolve, reject) => {
+        connection.query(query, [item.raeState, item.rae_cancelReason, new Date(), item.rae_id], (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        });
       });
     });
-  });
-  Promise.all(promises)
-    .then((resArray) => {
-      result(null, resArray);
-      connection.releaseConnection;
-    })
-    .catch((err) => {
-      console.log(`쿼리 실행 중 에러 발생: `, err);
-      result(err, null);
-      connection.releaseConnection;
-    });
-}
+    Promise.all(promises)
+      .then((resArray) => {
+        result(null, resArray);
+        connection.releaseConnection;
+      })
+      .catch((err) => {
+        console.log(`쿼리 실행 중 에러 발생: `, err);
+        result(err, null);
+        connection.releaseConnection;
+      });
+  }
 
   static filter(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
+    let conditions: string[] = [];
+
+    if(newFilter.rae_type){
+      conditions.push(`rp.rae_type = ${newFilter.rae_type}`);
+    }
+
+    if (newFilter.raeState) {
+      conditions.push(`rae.raeState = ${newFilter.raeState}`);
+    }
+
+    if (newFilter.selectFilter && newFilter.filterValue) {
+      conditions.push(`${newFilter.selectFilter} LIKE ?`);
+    }
+
+    if (newFilter.dateStart !== '' && newFilter.dateEnd !== '') {
+      conditions.push(`${newFilter.raeDateType} BETWEEN '${newFilter.dateStart} 00:00:00' AND '${newFilter.dateEnd} 23:59:59'`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const baseQuery = `
     SELECT 
-      o.*, 
-      d.*,        
-      product_length,
-      order_sum,
-      product_title 
+      rae.*,
+      IFNULL(subquery.product_length, 0) AS product_length,
+      subquery.product_title,
+      subquery.corName
     FROM
-      \`order\` AS o
-    JOIN 
-        delivery AS d
-    ON 
-        o.order_id = d.order_id
+      rae
     JOIN (
-      SELECT 
-          o.order_id,
+        SELECT 
+          rae.rae_id,
+          uc.cor_corName AS corName,
           COUNT(*) AS product_length,
-          SUM(op.order_cnt) AS order_sum,
           MAX(p.product_title) AS product_title  
         FROM 
-          \`order\` AS o
+          rae
         JOIN 
-          order_product AS op ON o.order_id = op.order_id 
+          rae_product AS rp ON rae.rae_id = rp.rae_id 
+        JOIN 
+          order_product AS op ON rp.order_product_id = op.order_product_id
         JOIN 
           product AS p ON op.product_id = p.product_id
+        JOIN 
+          users_corInfo AS uc ON uc.users_id = rae.users_id
+        ${whereClause} -- 서브쿼리 내부에서 조건 적용.
         GROUP BY 
-          o.order_id
-      ) AS subquery 
-      ON o.order_id = subquery.order_id`;
-    const countBaseQuery = "SELECT COUNT(*) as totalRows FROM \`order\` AS o JOIN delivery AS d ON o.order_id = d.order_id";
+          rae.rae_id, uc.cor_corName
+      ) AS subquery ON rae.rae_id = subquery.rae_id`;
 
-    const condition = `WHERE o.orderState < 2 AND (o.isCancel = 0 OR o.isCancel IS NULL)`
-    const conditionDelType = newFilter.deliveryType ? `AND d.deliveryType = ?` : '';
-    const conditionFilter = newFilter.selectFilter && newFilter.filterValue ? `AND ${newFilter.selectFilter} LIKE ?` : '';
-    const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
-      `AND o.order_date BETWEEN '${newFilter.dateStart} 00:00:00' AND '${newFilter.dateEnd} 23:59:59'`
-      : '';
+    const countBaseQuery = `
+    SELECT 
+      COUNT(*) as totalRows
+    FROM 
+      rae  
+    JOIN (
+      SELECT 
+        rae.rae_id,
+        uc.cor_corName AS corName,
+        COUNT(*) AS product_length,
+        MAX(p.product_title) AS product_title  
+      FROM 
+        rae
+      JOIN 
+        rae_product AS rp ON rae.rae_id = rp.rae_id 
+      JOIN 
+        order_product AS op ON rp.order_product_id = op.order_product_id
+      JOIN 
+        product AS p ON op.product_id = p.product_id
+      JOIN 
+        users_corInfo AS uc ON uc.users_id = rae.users_id
+        ${whereClause} -- 서브쿼리 내부에서 조건 적용.
+        GROUP BY 
+          rae.rae_id, uc.cor_corName
+      ) AS subquery ON rae.rae_id = subquery.rae_id`;
 
+    const orderBy = "ORDER BY rae.rae_id DESC";
 
-    const orderBy = "ORDER BY o.order_id DESC";
-
-    const query = `${baseQuery} ${condition} ${conditionDelType} ${conditionFilter} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
-    const countQuery = `${countBaseQuery} ${condition} ${conditionDelType} ${conditionFilter} ${dateCondition}`;
+    const query = `${baseQuery} ${orderBy} LIMIT ${offset}, ${limit}`;
+    const countQuery = `${countBaseQuery}`;
     const queryParams: string[] = [];
 
     if (newFilter.filterValue) {
