@@ -258,9 +258,12 @@ const orderController = {
   orderAll: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
     const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
-    const requestData = req.body?.orderState ? req.body?.orderState : null;
+    const orderState = req.body?.orderState ? req.body.orderState : null;
+    const isCancel = req.body?.isCancel ? req.body.isCancel : null;
+    console.log(isCancel);
+    console.log(orderState);
     // 데이터베이스에서 불러오기
-    Order.getOrderList(currentPage, itemsPerPage, requestData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Order.getOrderList(currentPage, itemsPerPage, orderState, isCancel, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다." });
