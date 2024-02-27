@@ -100,18 +100,27 @@ class Notice {
   }
 
 
-  static async getUserInfo(userId: string) {
-    // 데이터베이스에서 해당 사용자의 정보를 조회하는 로직을 작성합니다.
-    try {
-      // 이 부분 delete부분이랑 유사하게 리팩토링해야 함
-      const getName = await this.connection.query('SELECT name FROM users_info WHERE users_id = ?', [userId]);
-      return getName;
-    } catch (error) {
-      // 에러 처리
-      console.error(error);
-      throw new Error('사용자 정보를 가져오는 중 오류가 발생했습니다.');
-    }
+  static async getLoginUserInfo(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+    this.connection.query(`SELECT * FROM users_info WHERE users_id = ?`, [user.users_id], (err: QueryError | null, res: RowDataPacket[] | RowDataPacket[][]) => {
+      if (err) {
+        console.log("에러 발생: ", err);
+        result(err, null);
+        this.connection.releaseConnection;
+        return;
+      } else {
+        if (res.length > 0) {
+          console.log("찾은 유저: ", res[0]);
+          result(null, res[0]); // 찾은 사용자 정보 반환
+          this.connection.releaseConnection;
+        } else {
+          // 결과가 없을 시
+          result("찾을 수 없습니다.", null);
+          this.connection.releaseConnection;
+        }
+      }
+    })
   }
+
 
 }
 

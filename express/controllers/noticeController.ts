@@ -113,19 +113,21 @@ export const noticeController = {
     if (!token)
       return res.status(401).json({ message: '로그인 후 이용가능한 서비스입니다.' });
 
-    try {
-      // 토큰에서 사용자 ID를 추출합니다.
-      const decoded = jwt.verify(token, jwtSecret);
-      req.user = decoded;
+    jwt.verify(token, jwtSecret, (err: any, user: any) => {
+      if (err) {
+        return res.status(403).json({ message: "재 로그인이 필요합니다." })
+      }
+      else {
+        Notice.getLoginUserInfo(user, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+          if (err) {
+            return res.status(500).send({ message: err });
+          } else {
+            return res.status(200).json({ message: '로그인 정보 호출이 완료되었습니다.', success: true, data });
+          }
+        });
+      }
+    })
+  },
 
-      // 데이터베이스에서 해당 사용자의 정보를 조회합니다.
-      const userInfo = await Notice.getUserInfo(req.user.users_id);
-
-    } catch (error) {
-      // 에러 처리
-      console.error(error);
-      return res.status(500).json({ message: '내부 서버 오류 발생' });
-    }
-  }
 
 };

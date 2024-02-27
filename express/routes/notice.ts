@@ -9,4 +9,7 @@ noticeRouter.get('/read', noticeController.selectPosts); // 조회(전체)
 noticeRouter.put('/update/:id', noticeController.updatePosts); // 수정
 noticeRouter.delete('/delete/:id', noticeController.deletePosts); // 삭제
 
+// 로그인 사용자 정보 호출
+noticeRouter.post('/login/info', noticeController.verifiedWriter);
+
 export default noticeRouter;
