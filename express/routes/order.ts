@@ -12,6 +12,7 @@ orderRouter.post("/rae/list", orderController.raeList);
 orderRouter.put(`/invoice`, orderController.applyEditedInvoice);
 orderRouter.put(`/cancel`, orderController.cancelOrder);
 orderRouter.post(`/filter`, orderController.filter);
+orderRouter.post(`/rae/filter`, orderController.raeFilter);
 
 
 orderRouter.post("/findList", orderController.findList);

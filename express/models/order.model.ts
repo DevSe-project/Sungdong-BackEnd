@@ -510,6 +510,95 @@ class Order {
     });
   }
 
+  static raeFilter(users_id:any, newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const baseQuery = `
+    SELECT
+      op.order_product_id,
+      p.product_title,
+      p.product_spec,
+      p.product_brand, 
+      op.product_id,
+      op.selectedOption, 
+      o.order_date, 
+      o.order_id,
+      op.order_cnt, 
+      op.order_productPrice, 
+      d.deliveryType 
+    FROM \`order\` AS o 
+    JOIN order_product AS op ON o.order_id = op.order_id 
+    JOIN product AS p ON p.product_id = op.product_id 
+    JOIN delivery AS d ON d.order_id = o.order_id`;
+  
+  const countBaseQuery = `
+    SELECT 
+      COUNT(*) as totalRows     
+    FROM \`order\` AS o 
+    JOIN order_product AS op ON o.order_id = op.order_id 
+    JOIN product AS p ON p.product_id = op.product_id 
+    JOIN delivery AS d ON d.order_id = o.order_id`;
+  
+  const condition = `WHERE o.users_id = ? AND op.isRae = 0 AND o.isCancel = 0`;
+  
+  const conditionColumns = ["p.product_title", "p.product_brand", "p.product_id"];
+  const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
+  const conditionString = conditions.length > 0 ? "AND " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
+  
+  const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
+    `AND o.order_date BETWEEN ? AND ?`
+    : '';
+  
+  const orderBy = "ORDER BY o.order_date DESC";
+  
+  const query = `${baseQuery} ${condition} ${conditionString} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+  const countQuery = `${countBaseQuery} ${condition} ${conditionString} ${dateCondition}`;
+  
+  const queryParams = [
+    users_id,
+    `%${newFilter.product_title}%`,
+    `%${newFilter.product_brand}%`,
+    `%${newFilter.product_id}%`
+  ];
+  
+  if (newFilter.dateStart !== '' && newFilter.dateEnd !== '') {
+    queryParams.push(newFilter.dateStart, newFilter.dateEnd);
+  }
+    
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+
+      connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    });
+  }
+
   static deleteByIds(ids: any, result: (error: any, response: any) => void) {
     const query = "DELETE FROM \`order\` WHERE order_id IN (?)"
     connection.query(query, ids, (err, res) => {
