@@ -1,22 +1,34 @@
 import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, ProcedureCallPacket, PoolConnection, OkPacket } from 'mysql2';
 import { Request, Response } from "express";
 import Notice from "../models/notice.model";
+import jwt from 'jsonwebtoken';
+const jwtSecret = 'sung_dong';
 
 export const noticeController = {
   createPost: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." });
+    }
     if (!req.body.content) {
       return res.status(400).send({
         message: '내용을 채워주세요!'
       });
     }
-    const newPost = {
-      title: req.body.title,
-      content: req.body.content,
-      date: req.body.date,
-      writer: req.body.writer,
-    };
 
     try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded;
+      const userData = req.user;
+
+      const newPost = {
+        users_id: userData.users_id,
+        title: req.body.title,
+        content: req.body.content,
+        date: req.body.date,
+        writer: req.body.writer,
+      };
+
       const result = await Notice.create(newPost);
       return res.status(201).send(result);
     } catch (error) {
@@ -26,6 +38,8 @@ export const noticeController = {
       });
     }
   },
+
+
   selectPosts: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1;
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
@@ -85,4 +99,33 @@ export const noticeController = {
       });
     }
   },
+
+  /* ------------------작성자 정보------------------ */
+
+
+  /**
+   * User Token에서 users_id를 통해 users_info테이블의 name 컬럼의 정보를 가져옵니다.
+   * @param req 
+   * @param res 
+   */
+  verifiedWriter: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token)
+      return res.status(401).json({ message: '로그인 후 이용가능한 서비스입니다.' });
+
+    try {
+      // 토큰에서 사용자 ID를 추출합니다.
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded;
+
+      // 데이터베이스에서 해당 사용자의 정보를 조회합니다.
+      const userInfo = await Notice.getUserInfo(req.user.users_id);
+
+    } catch (error) {
+      // 에러 처리
+      console.error(error);
+      return res.status(500).json({ message: '내부 서버 오류 발생' });
+    }
+  }
+
 };

@@ -283,8 +283,8 @@ const orderController = {
 
       // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
       await Promise.all(fetchedData?.map(async (item: {
-        value: any; order_id: string, delivery_selectedCor: string, delivery_num: string 
-}) => {
+        value: any; order_id: string, delivery_selectedCor: string, delivery_num: string
+      }) => {
         await Order.updateDeliveryInvoice(item.value.order_id, item.value.delivery_num);
       }));
 
@@ -310,8 +310,8 @@ const orderController = {
 
       // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
       await Promise.all(fetchedData?.map(async (item: {
-        value: any; cancelReason: string; order_id:string
-}) => {
+        value: any; cancelReason: string; order_id: string
+      }) => {
         await Order.canceleOrder(item.value.cancelReason, item.value.order_id);
       }));
 
@@ -335,7 +335,7 @@ const orderController = {
       dateStart: requestData.date.start,
       dateEnd: requestData.date.end
     }
-    Order.filter(newFilter,currentPage,postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Order.filter(newFilter, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
@@ -344,7 +344,7 @@ const orderController = {
       }
     })
   },
-  
+
   delete: async (req: Request, res: Response) => {
     const ids = req.params.ids.split(',').map(String);
     Order.deleteByIds(ids, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {

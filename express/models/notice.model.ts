@@ -28,20 +28,43 @@ class Notice {
    * @param result 조회 결과 반환
    */
   static selectAllToPageNumber(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
-    const offset = (currentPage - 1) * itemsPerPage;
-    const limit = itemsPerPage;
-
-    this.connection.query(
-      `SELECT * FROM notice LIMIT ?, ?`,
-      [offset, limit],
-      (error: QueryError | null, rows: RowDataPacket[]) => {
-        if (error) {
-          result(error, null);
-        } else {
-          result(null, rows);
-        }
+    const offset: number = (currentPage - 1) * itemsPerPage;
+    const limit: number = itemsPerPage;
+    const query = `
+      SELECT * FROM notice LIMIT ?, ?
+    `;
+    // 전체 데이터 크기 확인을 위한 쿼리
+    const countQuery = "SELECT COUNT(*) as totalRows FROM product";
+    this.connection.query(countQuery, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        this.connection.releaseConnection;
+        return;
       }
-    );
+      const totalRows = countResult[0].totalRows;
+      this.connection.query(query, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          this.connection.releaseConnection;
+          return;
+        }
+        else {
+          const totalPages = Math.ceil(totalRows / itemsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("게시물이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          this.connection.releaseConnection;
+          return;
+        }
+      });
+    })
   }
 
 
@@ -75,6 +98,22 @@ class Notice {
       );
     });
   }
+
+
+  static async getUserInfo(userId: string) {
+    // 데이터베이스에서 해당 사용자의 정보를 조회하는 로직을 작성합니다.
+    try {
+      // 이 부분 delete부분이랑 유사하게 리팩토링해야 함
+      const getName = await this.connection.query('SELECT name FROM users_info WHERE users_id = ?', [userId]);
+      return getName;
+    } catch (error) {
+      // 에러 처리
+      console.error(error);
+      throw new Error('사용자 정보를 가져오는 중 오류가 발생했습니다.');
+    }
+  }
+
 }
+
 
 export default Notice;

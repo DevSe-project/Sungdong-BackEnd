@@ -5,7 +5,7 @@ import User from "../models/auth.model";
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import shortid from "shortid";
 
-const jwtSecret = 'sung_dong'
+const jwtSecret = 'sung_dong';
 
 const authController = {
   // 로그인
@@ -250,7 +250,7 @@ const authController = {
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
 
     User.selectAllToPageNumber(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
-      // 클라이언트에서 보낸 JSON 데이터를 받음
+      // 클라이언트에서 보낸 JSON 데이터를 받습니다.
       if (err)
         return res.status(500).send({ message: err.message || "고객정보를 갱신하는 중 서버 오류가 발생했 습니다." });
       else {
