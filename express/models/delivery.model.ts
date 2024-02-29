@@ -39,7 +39,7 @@ class Delivery {
       FROM 
         delivery d
       JOIN 
-       \`order\` o ON d.order_id = o.order_id
+        \`order\` o ON d.order_id = o.order_id
       JOIN 
         order_product op ON o.order_id = op.order_id
       JOIN 

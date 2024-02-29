@@ -296,7 +296,7 @@ class Order {
       executeQuery(0);
     });
   }
-  // 배송리스트 조회(전체) : JOIN(order | product | delivery)
+  // 관리자 - 주문리스트 조회(전체) : JOIN(order | product | delivery)
   static getOrderList(currentPage: number, itemsPerPage: number, orderState: any, isCancel: any, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
@@ -329,7 +329,10 @@ class Order {
         GROUP BY 
             o.order_id
         ) AS subquery ON o.order_id = subquery.order_id
-      WHERE o.orderState < ? ${orderState === 1 ? 'OR' : 'AND'} (o.isCancel = ? OR o.isCancel IS NULL)
+        WHERE
+        ${orderState === 1 ? '(o.orderState IN (0, 5, 6))' : '(o.orderState = 1)'} 
+        ${orderState === 1 ? 'OR' : 'AND'} 
+        (o.isCancel = ${orderState === 1 ? '1' : '0'} OR o.isCancel IS NULL)
       LIMIT ?, ?  
       `
       ];
@@ -342,10 +345,13 @@ class Order {
           delivery d
         JOIN 
         \`order\` o ON d.order_id = o.order_id
-        WHERE o.orderState < ? ${orderState === 1 ? 'OR' : 'AND'} (o.isCancel = ? OR o.isCancel IS NULL)
+        WHERE
+        ${orderState === 1 ? '(o.orderState IN (0, 5, 6))' : '(o.orderState = 1)'} 
+        ${orderState === 1 ? 'OR' : 'AND'}
+        (o.isCancel = ${orderState === 1 ? '1' : '0'} OR o.isCancel IS NULL)
       `;
 
-      connection.query(countQuery, [orderState !== null ? orderState : 2, isCancel !== null ? isCancel : 0], (err, countResult: any) => {
+      connection.query(countQuery, (err, countResult: any) => {
         if (err) {
           result(err, null);
           return;
@@ -356,7 +362,7 @@ class Order {
 
         function executeQuery(queryIndex: number) {
           if (queryIndex < queries.length) {
-            connection.query(queries[queryIndex], [orderState !== null ? orderState : 2, isCancel !== null ? isCancel : 0, offset, limit], (err, res) => {
+            connection.query(queries[queryIndex], [offset, limit], (err, res) => {
               if (err) {
                 console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
                 connection.rollback(() => {
@@ -409,9 +415,9 @@ class Order {
     }
   }
 
-  static async canceleOrder(cancelReason: string, order_id: string) {
+  static async cancelOrder(cancelReason: string, order_id: string) {
     try {
-      const rows = await connection.execute(
+      const rows = connection.execute(
         'UPDATE \`order\` SET order.isCancel = 1, order.cancelReason = ?, order.orderState = 5  WHERE order.order_id = ?',
         [cancelReason, order_id]
       );
@@ -600,6 +606,24 @@ class Order {
       });
     });
   }
+
+  static async requestCancelOrder(cancelReason: string, order_id: string, result: (arg0: any, arg1: any) => void) {
+      connection.query(
+        `UPDATE \`order\` SET ${cancelReason !== '' && 'order.cancelReason = ?'}, order.orderState = 6  WHERE order.order_id = ?`,
+        [(cancelReason !== '' && cancelReason), order_id], (err: QueryError | null, res: RowDataPacket[]) => {
+        try {
+          if (err) {
+            console.log("에러 발생: ", err);
+            result(err, null);
+          } else {
+            console.log("성공적으로 취소요청을 하였습니다.", res);
+            result(null, res);
+          }
+        } finally {
+          connection.releaseConnection; // Release the connection in a finally block
+        }
+  })
+}
 
   static deleteByIds(ids: any, result: (error: any, response: any) => void) {
     const query = "DELETE FROM \`order\` WHERE order_id IN (?)"
