@@ -10,28 +10,34 @@ export const noticeController = {
     if (!token) {
       return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." });
     }
-    if (!req.body.content) {
+    if (!req.body) {
       return res.status(400).send({
         message: '내용을 채워주세요!'
       });
     }
 
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${currentDate.getDate()} ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
+
     try {
+      // token을 jwtSecret키를 통해 
       const decoded = jwt.verify(token, jwtSecret);
       req.user = decoded;
-      const userData = req.user;
 
       const newPost = {
-        users_id: userData.users_id,
-        title: req.body.title,
-        content: req.body.content,
-        date: req.body.date,
-        writer: req.body.writer,
+        users_id: req.user.users_id,
+        post_title: req.body.title,
+        post_writer: req.body.writer,
+        post_content: req.body.contents,
+        post_date: formattedDate
       };
 
       const result = await Notice.create(newPost);
-      return res.status(201).send(result);
-    } catch (error) {
+      return res.status(201).send({ message: '게시물이 성공적으로 작성되었습니다.', result });
+    } catch (error: any) {
+      if (error.code === 'ER_DATA_TOO_LONG') {
+        return res.status(400).send({ message: '데이터 용량을 초과하였습니다,.' });
+      }
       console.error(error);
       return res.status(500).send({
         message: '내부 서버 오류 발생'
