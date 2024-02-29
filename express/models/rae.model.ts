@@ -99,6 +99,8 @@ class Rae {
       executeQuery(0);
     });
   }
+
+  //유저의 반품/교환 목록 불러오기
   static list(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
@@ -138,6 +140,7 @@ class Rae {
     })
   }
 
+  //관리자의 반품/교환 목록 불러오기
   static adminList(currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
@@ -276,6 +279,7 @@ class Rae {
       });
   }
 
+  //관리자 페이지의 필터 구성하기
   static filter(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
@@ -382,6 +386,104 @@ class Rae {
         } else {
           console.log(query);
           console.log(queryParams)
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    });
+  }
+
+  static raeFilter(users_id:any, newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const baseQuery = `
+    SELECT
+      *
+    FROM
+    rae AS r
+    JOIN 
+      rae_product AS rp ON r.rae_id = rp.rae_id 
+      JOIN order_product AS op ON op.order_product_id = rp.order_product_id 
+      JOIN product AS p ON p.product_id = op.product_id`;
+  
+  const countBaseQuery = `
+    SELECT 
+      COUNT(*) as totalRows     
+    FROM
+      rae AS r
+    JOIN 
+      rae_product AS rp ON r.rae_id = rp.rae_id 
+      JOIN order_product AS op ON op.order_product_id = rp.order_product_id 
+      JOIN product AS p ON p.product_id = op.product_id`;
+  
+  const condition = `WHERE r.users_id = ?`;
+  
+  const conditionColumns = ["p.product_title", "p.product_brand", "p.product_id", "p.product_spec", "p.product_model"];
+  const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
+  const conditionString = conditions.length > 0 ? "AND " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
+  
+  const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
+    `AND ${newFilter.raeDateType} BETWEEN ? AND ?`
+    : '';
+
+  const typeCondition = newFilter.rae_type !== '' ?
+  `AND rp.rae_type = ?`
+  : '';
+  const stateCondition = newFilter.raeState !== '' ?
+  `AND r.raeState = ?`
+  : '';
+  
+  const orderBy = "ORDER BY r.rae_requestDate DESC";
+  
+  const query = `${baseQuery} ${condition} ${conditionString} ${dateCondition} ${typeCondition} ${stateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+  const countQuery = `${countBaseQuery} ${condition} ${conditionString} ${dateCondition} ${typeCondition} ${stateCondition}`;
+  
+  const queryParams = [
+    users_id,
+    `%${newFilter.product_title}%`,
+    `%${newFilter.product_brand}%`,
+    `%${newFilter.product_id}%`,
+    `%${newFilter.product_spec}%`,
+    `%${newFilter.product_model}%`
+  ];
+  
+  if (newFilter.dateStart !== '' && newFilter.dateEnd !== '') {
+    queryParams.push(newFilter.dateStart, newFilter.dateEnd);
+  }
+  if (newFilter.rae_type !== ''){
+    queryParams.push(newFilter.rae_type);
+  }
+  if (newFilter.raeState !== ''){
+    queryParams.push(newFilter.raeState)
+  }
+    
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+
+      connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
           const totalPages = Math.ceil(totalRows / postsPerPage);
 
           const responseData = {
