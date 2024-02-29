@@ -40,6 +40,11 @@ export const noticeController = {
   },
 
 
+  /**
+   * 전달받은 페이지와 페이지 당 포스팅 개수에 맞춰 posts를 반환합니다.
+   * @param req token, page, pagePosts
+   * @param res 
+   */
   selectPosts: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1;
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
@@ -50,6 +55,20 @@ export const noticeController = {
       else {
         return res.status(200).json({ message: '공지사항이 성공적으로 갱신이 완료 되었습니다.', success: true, data });
       }
+    })
+  },
+  /**
+   * postId에 맞는 post 반환
+   * @param req 수정할 post의 postId
+   * @param res 전달받은 postId와 매치되는 post를 반환
+   */
+  selectMatchedPost: async (req: Request, res: Response) => {
+    const postId = req.body.postId;
+    Notice.selectMatchedPost(postId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      if (err)
+        return res.status(500).send({ message: err.message || "해당하는 포스트를 찾는 데 실피했습니다." });
+      else
+        return res.status(200).json({ message: '해당하는 공지사항 정보 호출이 성공적으로 완료되었습니다.', success: true, data });
     })
   },
   updatePosts: async (req: Request, res: Response) => {
@@ -80,7 +99,7 @@ export const noticeController = {
     }
   },
   deletePosts: async (req: Request, res: Response) => {
-    const postId = req.params.id;
+    const postId = parseInt(req.params.id, 10);
 
     try {
       const result = await Notice.delete(postId);

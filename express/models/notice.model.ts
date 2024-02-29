@@ -1,5 +1,6 @@
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import db from "../db";
+import { Query } from "mysql2/typings/mysql/lib/protocol/sequences/Query";
 
 // 쿼리문 상세하게 업데이트해야 할 소요 있음
 
@@ -67,6 +68,25 @@ class Notice {
     })
   }
 
+  /**
+   * postId와 일치하는 post를 조회합니다.
+   * @param postId 
+   * @param result 
+   */
+  static selectMatchedPost(postId: number, result: (error: any, data: any) => void) {
+    const query = `SELECT * FROM notice WHERE postId = ?`;
+    this.connection.query(query, postId, (err: QueryError | null, res: RowDataPacket[]) => {
+      if (err) {
+        // 에러가 발생한 경우 에러를 콜백으로 전달합니다.
+        result(err, null);
+      } else {
+        // 쿼리 결과를 콜백으로 전달합니다.
+        result(null, res);
+      }
+    });
+  }
+
+
 
 
   static update(postId: string, updatedContent: string): Promise<ResultSetHeader> {
@@ -84,10 +104,10 @@ class Notice {
     });
   }
 
-  static delete(postId: string): Promise<ResultSetHeader> {
+  static delete(postId: number): Promise<ResultSetHeader> {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        `DELETE FROM notice WHERE id = ?`,
+        `DELETE FROM notice WHERE postId = ?`,
         postId,
         (error: QueryError | null, result: ResultSetHeader) => {
           if (error) {
