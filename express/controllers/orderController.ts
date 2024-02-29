@@ -364,6 +364,8 @@ const orderController = {
         product_id: requestData.product_id || '',
         product_title: requestData.product_title || '',
         product_brand: requestData.product_brand || '',
+        product_spec: requestData.product_spec || '',
+        product_model: requestData.product_model || '',
         dateStart: requestData.date.start || '',
         dateEnd: requestData.date.end || ''
       };

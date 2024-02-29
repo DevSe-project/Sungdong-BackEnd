@@ -28,6 +28,8 @@ raeRouter.patch("/admin/cancel", raeController.changeCancelbyId); //처리상태
 //---------- 유저 -----------
 //생성
 raeRouter.post("/create", raeController.create);
+//생성
+raeRouter.post("/filter", raeController.raeFilter);
 //삭제
 raeRouter.delete("/delete/:ids", raeController.delete);
 

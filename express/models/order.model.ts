@@ -542,7 +542,7 @@ class Order {
   
   const condition = `WHERE o.users_id = ? AND op.isRae = 0 AND o.isCancel = 0`;
   
-  const conditionColumns = ["p.product_title", "p.product_brand", "p.product_id"];
+  const conditionColumns = ["p.product_title", "p.product_brand", "p.product_id", "p.product_spec", "p.product_model"];
   const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
   const conditionString = conditions.length > 0 ? "AND " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
   
@@ -559,7 +559,9 @@ class Order {
     users_id,
     `%${newFilter.product_title}%`,
     `%${newFilter.product_brand}%`,
-    `%${newFilter.product_id}%`
+    `%${newFilter.product_id}%`,
+    `%${newFilter.product_spec}%`,
+    `%${newFilter.product_model}%`
   ];
   
   if (newFilter.dateStart !== '' && newFilter.dateEnd !== '') {
