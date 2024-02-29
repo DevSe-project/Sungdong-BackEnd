@@ -94,11 +94,11 @@ class Notice {
 
 
 
-  static update(postId: string, updatedContent: string): Promise<ResultSetHeader> {
+  static update(postId: number, updatedData: any): Promise<ResultSetHeader> {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        `UPDATE notice SET content = ? WHERE id = ?`,
-        [updatedContent, postId],
+        `UPDATE notice SET ? WHERE postId = ?`,
+        [updatedData, postId],
         (error: QueryError | null, result: ResultSetHeader) => {
           if (error) {
             return reject(error);

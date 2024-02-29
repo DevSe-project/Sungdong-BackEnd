@@ -77,18 +77,31 @@ export const noticeController = {
         return res.status(200).json({ message: '해당하는 공지사항 정보 호출이 성공적으로 완료되었습니다.', success: true, data });
     })
   },
-  updatePosts: async (req: Request, res: Response) => {
-    const postId = req.params.id;
-    const updatedContent = req.body.content;
+  updatePost: async (req: Request, res: Response) => {
+    const postId = parseInt(req.body.postId, 10); // 숫자로 파싱
+    const currentDate = new Date(); // 현재시각 추출
+    const formattedDate = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${currentDate.getDate()} ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`; // 날짜 형식 맞춤
 
-    if (!updatedContent) {
+    if (!req.body) {
+      return res.status(400).send({
+        message: '내용을 채워주세요!'
+      });
+    }
+    const updatedData = {
+      post_title: req.body.post_title,
+      post_content: req.body.post_content,
+      post_date: formattedDate,
+      post_writer: req.body.post_writer
+    }
+
+    if (!updatedData) {
       return res.status(400).send({
         message: '내용을 채워주세요!'
       });
     }
 
     try {
-      const result = await Notice.update(postId, updatedContent);
+      const result = await Notice.update(postId, updatedData);
       if (result.affectedRows === 0) {
         return res.status(404).send({
           message: '게시물을 찾을 수 없습니다.'
