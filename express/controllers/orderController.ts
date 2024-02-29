@@ -403,6 +403,38 @@ const orderController = {
     }
   },
 
+  search: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string) || 1;
+    const postsPerPage = parseInt(req.query.post as string) || 10;
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      const requestData = req.body;
+      const newSearch = {
+        product_title: requestData.search || '',
+        product_id: requestData.search || '',
+        product_model: requestData.search || '',
+        product_spec: requestData.search || '',
+        product_brand: requestData.search || ''
+      }
+    Order.search(req.user.users_id, newSearch, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 주문 조회가 완료 되었습니다.', success: true, data });
+      }
+    })
+    } catch(error){
+      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
+  },
+
   delete: async (req: Request, res: Response) => {
     const ids = req.params.ids.split(',').map(String);
     Order.deleteByIds(ids, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {

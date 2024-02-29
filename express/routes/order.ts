@@ -16,6 +16,7 @@ orderRouter.post(`/rae/filter`, orderController.raeFilter);
 
 orderRouter.put(`/user/cancel`, orderController.requestCancelOrder);
 
+orderRouter.post(`/search`, orderController.search);
 
 orderRouter.post("/findList", orderController.findList);
 orderRouter.post("/findSelectOrderList", orderController.findSelectOrderList);

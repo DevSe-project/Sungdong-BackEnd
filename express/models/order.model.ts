@@ -625,6 +625,100 @@ class Order {
   })
 }
 
+static search(users_id:any, search: any, currentPage: any, postsPerPage: any, result: (arg0: any, arg1: any) => void) {
+  const currentPageNumber = parseInt(currentPage, 10) || 1;
+  const postsPerPageNumber = parseInt(postsPerPage, 10) || 5;
+
+  if (isNaN(currentPageNumber) || isNaN(postsPerPageNumber)) {
+    const error = new Error("현재페이지의 숫자나 표시 개수가 형식이 숫자가 아닙니다.");
+    console.log(error);
+    result(error, null);
+    connection.releaseConnection;
+    return;
+  }
+
+  const offset = (currentPageNumber - 1) * postsPerPageNumber;
+  const limit = postsPerPageNumber;
+
+  const buildQuery = (isCount: boolean) => {
+    const baseQuery = `
+    SELECT 
+      orders.order_id, 
+      orders.users_id, 
+      orders.order_payAmount, 
+      orders.order_date, 
+      orders.orderState, 
+      IFNULL(delivery.delivery_date, '') AS delivery_date, 
+      IFNULL(delivery.delivery_selectedCor,'') AS delivery_selectedCor, 
+      delivery.deliveryType, 
+      IFNULL(delivery.delivery_num, '') AS delivery_num, 
+      GROUP_CONCAT(
+          JSON_OBJECT(
+            \'order_productPrice\', order_product.order_productPrice,
+            \'selectedOption\', IFNULL(order_product.selectedOption, ''), 
+            \'order_cnt\', order_product.order_cnt,
+            \'product_spec\', IFNULL(product.product_spec,'') ,
+            \'product_title\', product.product_title, 
+            \'product_image_original\', IFNULL(product.product_image_original, '') )) AS products 
+    FROM \`order\` AS orders 
+      JOIN order_product ON orders.order_id = order_product.order_id 
+      JOIN product ON product.product_id = order_product.product_id 
+      JOIN delivery ON delivery.order_id = orders.order_id `;
+    const countBaseQuery = `
+    SELECT COUNT(*) as totalRows
+    FROM \`order\` AS orders 
+    JOIN order_product ON orders.order_id = order_product.order_id 
+    JOIN product ON product.product_id = order_product.product_id 
+    JOIN delivery ON delivery.order_id = orders.order_id `;
+    const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
+    const conditionSingle = `WHERE (${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")})`;
+    const conditionUser = `AND orders.users_id = ?`
+    const groupBy = `GROUP BY orders.order_id, orders.users_id, orders.order_date, orders.orderState, IFNULL(delivery.delivery_selectedCor,''), delivery.deliveryType, IFNULL(delivery.delivery_num,''), IFNULL(delivery.delivery_date,'')` 
+    const orderBy = "ORDER BY orders.order_id DESC";
+    const limitClause = "LIMIT ?, ?";
+    return `${isCount ? countBaseQuery : baseQuery} ${conditionSingle} ${conditionUser} ${isCount ? "" : groupBy} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
+  };
+
+  const query = buildQuery(false);
+  const countQuery = buildQuery(true);
+
+  const searchTerm = search;
+
+
+  connection.query(countQuery, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, users_id], (countErr, countResult: any) => {
+  if (countErr) {
+      console.log(countErr);
+      result(countErr, null);
+      connection.releaseConnection;
+      return;
+    }
+    const totalRows = countResult[0].totalRows;
+      connection.query(query, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, users_id, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        }
+        else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+          console.log("Total Pages:", totalPages); // Add this line to check the value
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+            postsPerPage: postsPerPage,
+            totalRows: totalRows,
+          }
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    })
+  }
+
   static deleteByIds(ids: any, result: (error: any, response: any) => void) {
     const query = "DELETE FROM \`order\` WHERE order_id IN (?)"
     connection.query(query, ids, (err, res) => {
