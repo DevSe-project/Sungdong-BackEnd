@@ -99,6 +99,119 @@ class Search {
       })
     })
   }
+
+  static adminList(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const whereClause = newFilter.searchFilter && newFilter.search ? `WHERE ${newFilter.searchFilter} LIKE ?` : '';
+
+    const baseQuery = `
+    SELECT 
+      o.*, 
+      d.*,        
+      product_length,
+      order_sum,
+      product_title 
+    FROM
+      \`order\` AS o
+    JOIN 
+        delivery AS d
+    ON 
+        o.order_id = d.order_id
+    JOIN (
+      SELECT 
+          o.order_id,
+          COUNT(*) AS product_length,
+          SUM(op.order_cnt) AS order_sum,
+          MAX(p.product_title) AS product_title  
+        FROM 
+          \`order\` AS o
+        JOIN 
+          order_product AS op ON o.order_id = op.order_id 
+        JOIN 
+          product AS p ON op.product_id = p.product_id
+        JOIN 
+          users_corInfo AS uc ON uc.users_id = o.users_id
+        ${whereClause} -- 서브쿼리 내부에서 조건 적용.  
+        GROUP BY 
+          o.order_id
+      ) AS subquery 
+      ON o.order_id = subquery.order_id`;
+    const countBaseQuery = `
+    SELECT 
+      COUNT(*) as totalRows 
+    FROM 
+      \`order\` AS o 
+    JOIN 
+      delivery AS d 
+    ON 
+      o.order_id = d.order_id
+    JOIN (
+      SELECT 
+          o.order_id,
+          COUNT(*) AS product_length,
+          SUM(op.order_cnt) AS order_sum,
+          MAX(p.product_title) AS product_title  
+        FROM 
+          \`order\` AS o
+        JOIN 
+          order_product AS op ON o.order_id = op.order_id 
+        JOIN 
+          product AS p ON op.product_id = p.product_id
+        JOIN 
+          users_corInfo AS uc ON uc.users_id = o.users_id
+        ${whereClause} -- 서브쿼리 내부에서 조건 적용.  
+        GROUP BY 
+          o.order_id
+      ) AS subquery 
+      ON o.order_id = subquery.order_id`;
+
+    const orderBy = "ORDER BY o.order_id DESC";
+
+    const query = `${baseQuery} ${orderBy} LIMIT ${offset}, ${limit}`;
+    const countQuery = `${countBaseQuery}`;
+    const queryParams: string[] = [];
+
+    if (newFilter.search) {
+      queryParams.push(`%${newFilter.search}%`)
+    }
+
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+
+      connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
+          console.log(query);
+          console.log(queryParams)
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+            postsPerPage: postsPerPage,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    });
+  }
 }
 
 export = Search;

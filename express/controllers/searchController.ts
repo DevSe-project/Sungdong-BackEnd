@@ -44,8 +44,6 @@ const searchController = {
       }]
       categoryId = requestData[2] ? requestData[2] : null;
     }
-    console.log(searchTerm)
-    console.log(separateSearch)
     Search.list(userData.userType_id, searchTerm, separateSearch, currentPage, postsPerPage, categoryId, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
@@ -57,6 +55,21 @@ const searchController = {
     } catch(error){
       return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
     }
+  },
+  adminList: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string) || 1;
+    const postsPerPage = parseInt(req.query.post as string) || 10;
+    const requestData = req.body;
+    console.log(requestData);
+  
+    Search.adminList(requestData, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 상품 갱신이 완료 되었습니다.', success: true, data });
+      }
+    })
   },
   upload: async (req: Request, res: Response) => {
     console.log('이미지 업로드 요청 받음');
