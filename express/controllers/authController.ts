@@ -9,6 +9,11 @@ const jwtSecret = 'sung_dong';
 
 const authController = {
   // 로그인
+  /**
+   * 로그인
+   * @param req 
+   * @param res 
+   */
   login: async (req: Request, res: Response) => {
     const loadUser = req.body;
 
