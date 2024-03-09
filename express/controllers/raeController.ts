@@ -272,7 +272,6 @@ const RaeController = {
         dateStart: requestData.date.start || '',
         dateEnd: requestData.date.end || ''
       };
-      console.log(newFilter)
       Rae.raeFilter(req.user.users_id, newFilter, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
         // 클라이언트에서 보낸 JSON 데이터를 받음
         if (err)
