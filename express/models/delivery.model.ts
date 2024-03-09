@@ -21,6 +21,7 @@ class Delivery {
         p.product_title,
         op.selectedOption, 
         p.product_price, 
+        op.order_cnt,
         ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
       FROM 
         delivery d
@@ -157,6 +158,7 @@ class Delivery {
       p.product_title,
       op.selectedOption, 
       p.product_price, 
+      op.order_cnt,
       ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
     FROM 
       delivery d
