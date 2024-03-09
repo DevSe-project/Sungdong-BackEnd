@@ -142,7 +142,7 @@ class Delivery {
    * @param result 
    */
   static filteredData(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
-    const offset = (currentPage - 1) * itemsPerPage; //
+    const offset = (currentPage - 1) * itemsPerPage; 
     const limit = itemsPerPage;
 
     // 조인 쿼리

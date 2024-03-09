@@ -87,7 +87,7 @@ const deliveryController = {
   // 필터링
   filter: async (req: Request, res: Response) => {
     const checkboxState = req.body.checkboxState; // 사용하기 쉽게 변수에 담기
-    const filteredStateKeys = Object.keys(checkboxState).filter(key => checkboxState[key] === true); // 값이 true인 키만 추출
+    const filteredStateKeys = checkboxState.length > 0 ? Object.keys(checkboxState).filter(key => checkboxState[key] === true) : Object.keys(checkboxState).map(item => {return item}); // 값이 true인 키만 추출
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 조회할 페이지 번호
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10; // 조회할 페이지의 아이템 개수
     const newFilter = {
