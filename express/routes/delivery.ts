@@ -10,6 +10,7 @@ dlRouter.get(`/all`, deliveryController.deliveryAll);
 dlRouter.put(`/state/edit`, deliveryController.applyEditedState);
 dlRouter.put(`/invoice/edit`, deliveryController.applyEditedInvoice);
 dlRouter.delete(`/deliveries/delete/:ids`, deliveryController.delete);
+dlRouter.post(`/filter`, deliveryController.filter);
 
 
 export default dlRouter;

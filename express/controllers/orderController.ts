@@ -258,9 +258,12 @@ const orderController = {
   orderAll: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
     const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
-    const requestData = req.body?.orderState ? req.body?.orderState : null;
+    const orderState = req.body?.orderState ? req.body.orderState : null;
+    const isCancel = req.body?.isCancel ? req.body.isCancel : null;
+    console.log(isCancel);
+    console.log(orderState);
     // 데이터베이스에서 불러오기
-    Order.getOrderList(currentPage, itemsPerPage, requestData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Order.getOrderList(currentPage, itemsPerPage, orderState, isCancel, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다." });
@@ -283,8 +286,8 @@ const orderController = {
 
       // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
       await Promise.all(fetchedData?.map(async (item: {
-        value: any; order_id: string, delivery_selectedCor: string, delivery_num: string 
-}) => {
+        value: any; order_id: string, delivery_selectedCor: string, delivery_num: string
+      }) => {
         await Order.updateDeliveryInvoice(item.value.order_id, item.value.delivery_num);
       }));
 
@@ -310,9 +313,9 @@ const orderController = {
 
       // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
       await Promise.all(fetchedData?.map(async (item: {
-        value: any; cancelReason: string; order_id:string
-}) => {
-        await Order.canceleOrder(item.value.cancelReason, item.value.order_id);
+        value: any; cancelReason: string; order_id: string
+      }) => {
+        await Order.cancelOrder(item.value.cancelReason, item.value.order_id);
       }));
 
       // 응답 전송: 업데이트 성공
@@ -335,7 +338,7 @@ const orderController = {
       dateStart: requestData.date.start,
       dateEnd: requestData.date.end
     }
-    Order.filter(newFilter,currentPage,postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Order.filter(newFilter, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
@@ -344,7 +347,94 @@ const orderController = {
       }
     })
   },
-  
+
+  raeFilter: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      const currentPage = parseInt(req.query.page as string) || 1;
+      const postsPerPage = parseInt(req.query.post as string) || 10;
+      const requestData = req.body;
+      const newFilter = {
+        product_id: requestData.product_id || '',
+        product_title: requestData.product_title || '',
+        product_brand: requestData.product_brand || '',
+        product_spec: requestData.product_spec || '',
+        product_model: requestData.product_model || '',
+        dateStart: requestData.date.start || '',
+        dateEnd: requestData.date.end || ''
+      };
+      Order.raeFilter(req.user.users_id, newFilter, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 주문 조회가 완료 되었습니다.', success: true, data });
+        }
+      })
+    }catch(error){
+      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
+  },
+
+  // 유저 측 주문취소 요청
+  requestCancelOrder: async (req: Request, res: Response) => {
+    try {
+      // 요청에서 변경된 배송 상태 데이터 추출
+      const item = req.body;
+      // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
+        Order.requestCancelOrder(item.cancelReason, item.order_id, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        if(err){
+          return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
+        }
+        else {
+          return res.status(200).json({ message: "주문 상태가 성공적으로 업데이트되었습니다." });
+        }
+        })
+    } catch (error) {
+      // 응답 전송: 업데이트 실패
+      console.error("주문 상태 업데이트 중 오류가 발생했습니다:", error);
+      return res.status(500).json({ message: "주문 상태 업데이트 중 오류가 발생했습니다." });
+    }
+  },
+
+  search: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string) || 1;
+    const postsPerPage = parseInt(req.query.post as string) || 10;
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      const requestData = req.body;
+      const newSearch = {
+        product_title: requestData.search || '',
+        product_id: requestData.search || '',
+        product_model: requestData.search || '',
+        product_spec: requestData.search || '',
+        product_brand: requestData.search || ''
+      }
+    Order.search(req.user.users_id, newSearch, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+      // 클라이언트에서 보낸 JSON 데이터를 받음
+      if (err)
+        return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
+      else {
+        return res.status(200).json({ message: '성공적으로 주문 조회가 완료 되었습니다.', success: true, data });
+      }
+    })
+    } catch(error){
+      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
+  },
+
   delete: async (req: Request, res: Response) => {
     const ids = req.params.ids.split(',').map(String);
     Order.deleteByIds(ids, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {

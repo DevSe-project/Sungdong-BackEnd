@@ -252,7 +252,7 @@ class User {
   }
 
   // 페이지와 포스팅 개수에 따른 user 조회
-  static getFindUserIfCondition(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+  static selectAllToPageNumber(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
     const query = `

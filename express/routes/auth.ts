@@ -18,11 +18,11 @@ authRouter.get("/info", authController.info);
 authRouter.get("/welcomeInfo", authController.welcomeInfo);
 
 /*------------------ 회원 관리--------------------*/
-authRouter.get("/userAllOfPage", authController.userAllOfPage);
-authRouter.post("/userFilter", authController.userFilter);
-authRouter.post("/userSort", authController.userSort);
-authRouter.post("/userUpdate", authController.userUpdate);
-authRouter.delete("/userDelete/:ids", authController.userDel);
+authRouter.get("/read", authController.selectAll); // 조회
+authRouter.post("/filter", authController.userFilter); // 필터링
+authRouter.post("/sort", authController.userSort); // 정렬
+authRouter.post("/update", authController.userUpdate); // 업데이트(수정)
+authRouter.delete("/delete/:ids", authController.userDel); // 삭제
 
 /*------------------ 코드 관련--------------------*/
 authRouter.get("/codeAll", authController.getAllCode);

@@ -13,6 +13,7 @@ import orderRouter from "./routes/order";
 import searchRouter from "./routes/search";
 import estimateRouter from "./routes/estimate";
 import raeRouter from "./routes/rae";
+import noticeRouter from "./routes/notice";
 const app: Express = express()
 const PORT = 5050;
 
@@ -56,14 +57,15 @@ declare module 'express-session' {
 }
 
 
-app.use("/auth", authRouter)
-app.use("/category", categoryRouter)
-app.use("/delivery", dlRouter)
+app.use("/auth", authRouter);
+app.use("/category", categoryRouter);
+app.use("/delivery", dlRouter);
 app.use("/product", productRouter)
 app.use("/cart", cartRouter);
 app.use("/order", orderRouter);
 app.use("/search", searchRouter);
 app.use("/estimate", estimateRouter);
 app.use("/rae", raeRouter);
+app.use("/notice", noticeRouter);
 
 app.listen(PORT, () => { console.log(`[SERVER] : http://localhost:${PORT} ON!`) })

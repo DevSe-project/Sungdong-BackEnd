@@ -132,7 +132,8 @@ class Order {
     p.product_title,
     p.product_spec,
     p.product_brand, 
-    op.product_id, 
+    op.product_id,
+    op.selectedOption, 
     o.order_date, 
     o.order_id,
     op.order_cnt, 
@@ -295,8 +296,8 @@ class Order {
       executeQuery(0);
     });
   }
-  // 배송리스트 조회(전체) : JOIN(order | product | delivery)
-  static getOrderList(currentPage: number, itemsPerPage: number, requestData: any, result: (error: any, data: any) => void) {
+  // 관리자 - 주문리스트 조회(전체) : JOIN(order | product | delivery)
+  static getOrderList(currentPage: number, itemsPerPage: number, orderState: any, isCancel: any, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
     performTransaction((connection: PoolConnection) => {
@@ -328,7 +329,10 @@ class Order {
         GROUP BY 
             o.order_id
         ) AS subquery ON o.order_id = subquery.order_id
-      WHERE o.orderState < ? AND (o.isCancel = 0 OR o.isCancel IS NULL)
+        WHERE
+        ${orderState === 1 ? '(o.orderState IN (0, 5, 6))' : '(o.orderState = 1)'} 
+        ${orderState === 1 ? 'OR' : 'AND'} 
+        (o.isCancel = ${orderState === 1 ? '1' : '0'} OR o.isCancel IS NULL)
       LIMIT ?, ?  
       `
       ];
@@ -341,10 +345,13 @@ class Order {
           delivery d
         JOIN 
         \`order\` o ON d.order_id = o.order_id
-        WHERE o.orderState < ? AND (o.isCancel = 0 OR o.isCancel IS NULL)
+        WHERE
+        ${orderState === 1 ? '(o.orderState IN (0, 5, 6))' : '(o.orderState = 1)'} 
+        ${orderState === 1 ? 'OR' : 'AND'}
+        (o.isCancel = ${orderState === 1 ? '1' : '0'} OR o.isCancel IS NULL)
       `;
 
-      connection.query(countQuery, [requestData !== null ? requestData : 2], (err, countResult: any) => {
+      connection.query(countQuery, (err, countResult: any) => {
         if (err) {
           result(err, null);
           return;
@@ -355,7 +362,7 @@ class Order {
 
         function executeQuery(queryIndex: number) {
           if (queryIndex < queries.length) {
-            connection.query(queries[queryIndex], [requestData !== null ? requestData : 2, offset, limit], (err, res) => {
+            connection.query(queries[queryIndex], [offset, limit], (err, res) => {
               if (err) {
                 console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
                 connection.rollback(() => {
@@ -408,10 +415,10 @@ class Order {
     }
   }
 
-  static async canceleOrder(cancelReason: string, order_id: string) {
+  static async cancelOrder(cancelReason: string, order_id: string) {
     try {
-      const rows = await connection.execute(
-        'UPDATE \`order\` SET order.isCancel = 1, order.cancelReason = ?  WHERE order.order_id = ?',
+      const rows = connection.execute(
+        'UPDATE \`order\` SET order.isCancel = 1, order.cancelReason = ?, order.orderState = 5  WHERE order.order_id = ?',
         [cancelReason, order_id]
       );
       connection.releaseConnection;
@@ -507,6 +514,209 @@ class Order {
         }
       });
     });
+  }
+
+  static raeFilter(users_id:any, newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const baseQuery = `
+    SELECT
+      op.order_product_id,
+      p.product_title,
+      p.product_spec,
+      p.product_brand, 
+      op.product_id,
+      op.selectedOption, 
+      o.order_date, 
+      o.order_id,
+      op.order_cnt, 
+      op.order_productPrice, 
+      d.deliveryType 
+    FROM \`order\` AS o 
+    JOIN order_product AS op ON o.order_id = op.order_id 
+    JOIN product AS p ON p.product_id = op.product_id 
+    JOIN delivery AS d ON d.order_id = o.order_id`;
+  
+  const countBaseQuery = `
+    SELECT 
+      COUNT(*) as totalRows     
+    FROM \`order\` AS o 
+    JOIN order_product AS op ON o.order_id = op.order_id 
+    JOIN product AS p ON p.product_id = op.product_id 
+    JOIN delivery AS d ON d.order_id = o.order_id`;
+  
+  const condition = `WHERE o.users_id = ? AND op.isRae = 0 AND o.isCancel = 0`;
+  
+  const conditionColumns = ["p.product_title", "p.product_brand", "p.product_id", "p.product_spec", "p.product_model"];
+  const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
+  const conditionString = conditions.length > 0 ? "AND " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
+  
+  const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
+    `AND o.order_date BETWEEN ? AND ?`
+    : '';
+  
+  const orderBy = "ORDER BY o.order_date DESC";
+  
+  const query = `${baseQuery} ${condition} ${conditionString} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+  const countQuery = `${countBaseQuery} ${condition} ${conditionString} ${dateCondition}`;
+  
+  const queryParams = [
+    users_id,
+    `%${newFilter.product_title}%`,
+    `%${newFilter.product_brand}%`,
+    `%${newFilter.product_id}%`,
+    `%${newFilter.product_spec}%`,
+    `%${newFilter.product_model}%`
+  ];
+  
+  if (newFilter.dateStart !== '' && newFilter.dateEnd !== '') {
+    queryParams.push(newFilter.dateStart, newFilter.dateEnd);
+  }
+    
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+
+      connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    });
+  }
+
+  static async requestCancelOrder(cancelReason: string, order_id: string, result: (arg0: any, arg1: any) => void) {
+      connection.query(
+        `UPDATE \`order\` SET ${cancelReason !== '' && 'order.cancelReason = ?'}, order.orderState = 6  WHERE order.order_id = ?`,
+        [(cancelReason !== '' && cancelReason), order_id], (err: QueryError | null, res: RowDataPacket[]) => {
+        try {
+          if (err) {
+            console.log("에러 발생: ", err);
+            result(err, null);
+          } else {
+            console.log("성공적으로 취소요청을 하였습니다.", res);
+            result(null, res);
+          }
+        } finally {
+          connection.releaseConnection; // Release the connection in a finally block
+        }
+  })
+}
+
+static search(users_id:any, search: any, currentPage: any, postsPerPage: any, result: (arg0: any, arg1: any) => void) {
+  const currentPageNumber = parseInt(currentPage, 10) || 1;
+  const postsPerPageNumber = parseInt(postsPerPage, 10) || 5;
+
+  if (isNaN(currentPageNumber) || isNaN(postsPerPageNumber)) {
+    const error = new Error("현재페이지의 숫자나 표시 개수가 형식이 숫자가 아닙니다.");
+    console.log(error);
+    result(error, null);
+    connection.releaseConnection;
+    return;
+  }
+
+  const offset = (currentPageNumber - 1) * postsPerPageNumber;
+  const limit = postsPerPageNumber;
+
+  const buildQuery = (isCount: boolean) => {
+    const baseQuery = `
+    SELECT 
+      orders.order_id, 
+      orders.users_id, 
+      orders.order_payAmount, 
+      orders.order_date, 
+      orders.orderState, 
+      IFNULL(delivery.delivery_date, '') AS delivery_date, 
+      IFNULL(delivery.delivery_selectedCor,'') AS delivery_selectedCor, 
+      delivery.deliveryType, 
+      IFNULL(delivery.delivery_num, '') AS delivery_num, 
+      GROUP_CONCAT(
+          JSON_OBJECT(
+            \'order_productPrice\', order_product.order_productPrice,
+            \'selectedOption\', IFNULL(order_product.selectedOption, ''), 
+            \'order_cnt\', order_product.order_cnt,
+            \'product_spec\', IFNULL(product.product_spec,'') ,
+            \'product_title\', product.product_title, 
+            \'product_image_original\', IFNULL(product.product_image_original, '') )) AS products 
+    FROM \`order\` AS orders 
+      JOIN order_product ON orders.order_id = order_product.order_id 
+      JOIN product ON product.product_id = order_product.product_id 
+      JOIN delivery ON delivery.order_id = orders.order_id `;
+    const countBaseQuery = `
+    SELECT COUNT(*) as totalRows
+    FROM \`order\` AS orders 
+    JOIN order_product ON orders.order_id = order_product.order_id 
+    JOIN product ON product.product_id = order_product.product_id 
+    JOIN delivery ON delivery.order_id = orders.order_id `;
+    const conditionColumns = ["product.product_id", "product.product_title", "product.product_brand", "product.product_spec", "product.product_model"];
+    const conditionSingle = `WHERE (${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")})`;
+    const conditionUser = `AND orders.users_id = ?`
+    const groupBy = `GROUP BY orders.order_id, orders.users_id, orders.order_date, orders.orderState, IFNULL(delivery.delivery_selectedCor,''), delivery.deliveryType, IFNULL(delivery.delivery_num,''), IFNULL(delivery.delivery_date,'')` 
+    const orderBy = "ORDER BY orders.order_id DESC";
+    const limitClause = "LIMIT ?, ?";
+    return `${isCount ? countBaseQuery : baseQuery} ${conditionSingle} ${conditionUser} ${isCount ? "" : groupBy} ${isCount ? "" : orderBy} ${isCount ? "" : limitClause}`;
+  };
+
+  const query = buildQuery(false);
+  const countQuery = buildQuery(true);
+
+  const searchTerm = search;
+
+
+  connection.query(countQuery, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, users_id], (countErr, countResult: any) => {
+  if (countErr) {
+      console.log(countErr);
+      result(countErr, null);
+      connection.releaseConnection;
+      return;
+    }
+    const totalRows = countResult[0].totalRows;
+      connection.query(query, [`%${searchTerm.product_id}%`, `%${searchTerm.product_title}%`, `%${searchTerm.product_brand}%`, `%${searchTerm.product_spec}%`, `%${searchTerm.product_model}%`, users_id, offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        }
+        else {
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+          console.log("Total Pages:", totalPages); // Add this line to check the value
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+            postsPerPage: postsPerPage,
+            totalRows: totalRows,
+          }
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    })
   }
 
   static deleteByIds(ids: any, result: (error: any, response: any) => void) {
