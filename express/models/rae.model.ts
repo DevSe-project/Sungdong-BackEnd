@@ -433,8 +433,8 @@ class Rae {
   const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
   const conditionString = conditions.length > 0 ? "AND " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
   
-  const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
-    `AND ${newFilter.raeDateType} BETWEEN ? AND ?`
+  const dateCondition = newFilter.raeDateType !== '' && newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
+    `AND ${newFilter.raeDateType} BETWEEN DATE_FORMAT(?, "%Y-%m-%d") AND DATE_FORMAT(?, "%Y-%m-%d")`
     : '';
 
   const typeCondition = newFilter.rae_type !== '' ?
@@ -484,6 +484,8 @@ class Rae {
           connection.releaseConnection;
           return;
         } else {
+          console.log(query);
+          console.log(queryParams);
           const totalPages = Math.ceil(totalRows / postsPerPage);
 
           const responseData = {
