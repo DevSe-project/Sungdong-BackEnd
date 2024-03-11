@@ -96,7 +96,8 @@ const orderController = {
           order_payAmount: requestData.orderList.reduce((sum: number, item: { cart_price: number; cart_cnt: number; cart_discount: number; }) => //reduce 함수사용하여 배열 객체의 합계 계산, delivery값으로 sum을 초기화
             sum + (item.cart_price * item.cart_cnt)
             , 3000),
-          orderState: requestData.orderInformation.order_payRoute === 'CMS' ? 1 : 0
+          orderState: requestData.orderInformation.order_payRoute === 'CMS' ? 1 : 0,
+          order_payName: requestData.orderInformation.order_payName ? requestData.orderInformation.order_payName : ''
         },
         product2: orderListMap,
         product3: {
