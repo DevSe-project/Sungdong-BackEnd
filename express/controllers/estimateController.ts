@@ -204,6 +204,36 @@ const estimateController = {
     }
   },
 
+  filter: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+      return res.status(401).json({ message: "로그인 후 이용가능한 서비스입니다." })
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret);
+      req.user = decoded; // decoded에는 토큰의 내용이 들어 있음
+      const currentPage = parseInt(req.query.page as string) || 1;
+      const postsPerPage = parseInt(req.query.post as string) || 10;
+      const requestData = req.body;
+      const newFilter = {
+        dateStart: requestData.start,
+        dateEnd: requestData.end
+      }
+      Estimate.filter(req.user.users_id, newFilter, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "반품/교환 목록을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 반품/교환 목록 조회가 완료 되었습니다.', success: true, data });
+        }
+      })
+    } catch(error){
+      return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
+  },
+
+
   
   // 견적함 리스트
   manager: async (req: Request, res: Response) => {

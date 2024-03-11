@@ -8,6 +8,7 @@ estimateRouter.post("/list", estimateController.list);
 
 estimateRouter.get("/manager", estimateController.manager);
 estimateRouter.post("/findList", estimateController.findList);
+estimateRouter.post("/filter", estimateController.filter);
 estimateRouter.post("/selectPrint", estimateController.findSelectEstimateList);
 estimateRouter.post("/create", estimateController.create);
 estimateRouter.post("/initBox", estimateController.initBox);

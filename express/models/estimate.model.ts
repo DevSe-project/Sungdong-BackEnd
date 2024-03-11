@@ -310,6 +310,91 @@ class Estimate {
       }
     });
   }
+
+  static filter(users_id:any, newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+    const offset = (currentPage - 1) * postsPerPage;
+    const limit = postsPerPage;
+
+    const baseQuery = `
+    SELECT estimate.*, 
+    GROUP_CONCAT(
+        JSON_OBJECT(
+            'product_id', estimate_product.product_id,
+            'product_title', product.product_title
+        )
+    ) AS products 
+    FROM estimate 
+    JOIN estimate_product 
+    ON estimate.estimate_id = estimate_product.estimate_id 
+    JOIN product 
+    ON product.product_id = estimate_product.product_id 
+  `;
+  
+  const countBaseQuery = `
+    SELECT 
+      COUNT(*) as totalRows     
+    FROM estimate 
+      JOIN estimate_product 
+        ON estimate.estimate_id = estimate_product.estimate_id 
+      JOIN product 
+        ON product.product_id = estimate_product.product_id `;
+  
+  const condition = `WHERE estimate.users_id = ?`;
+  
+  const dateCondition = newFilter.raeDateType !== '' && newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
+    `AND estimate.estimate_date BETWEEN DATE_FORMAT(?, "%Y-%m-%d") AND DATE_FORMAT(?, "%Y-%m-%d")`
+    : '';
+
+  const groupBy = "GROUP BY estimate.estimate_id";
+  
+  const orderBy = "ORDER BY estimate.estimate_date DESC";
+  
+  const query = `${baseQuery} ${condition} ${dateCondition} ${groupBy} ${orderBy} LIMIT ${offset}, ${limit}`;
+  const countQuery = `${countBaseQuery} ${condition} ${dateCondition}`;
+  
+  const queryParams = [
+    users_id,
+  ];
+  
+  if (newFilter.dateStart !== '' && newFilter.dateEnd !== '') {
+    queryParams.push(newFilter.dateStart, newFilter.dateEnd);
+  }
+
+    // 전체 데이터 크기 확인을 위한 쿼리
+    connection.query(countQuery, queryParams, (countErr, countResult: any) => {
+      if (countErr) {
+        result(countErr, null);
+        connection.releaseConnection;
+        return;
+      }
+      const totalRows = countResult[0].totalRows;
+
+      connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
+          console.log(query);
+          console.log(queryParams);
+          const totalPages = Math.ceil(totalRows / postsPerPage);
+
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("상품이 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection;
+          return;
+        }
+      });
+    });
+  }
+
   static deleteByIds(product: number[], result: (error: any, response: any) => void) {
     const query = "DELETE FROM estimateBox_product WHERE estimateBox_product_id IN (?)"
     connection.query(query, [product], (err, res) => {
