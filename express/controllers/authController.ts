@@ -428,7 +428,7 @@ const authController = {
         return res.status(400).json({ message: '인증에 실패하였습니다 :: 관리자가 아닙니다.', success: false });
       }
     } catch {
-      res.status(500).json({ success: false, message: "서버 오류 발생" });
+      res.status(403).json({ success: false, message: "회원 인증이 만료되었습니다. 다시 로그인 해주세요!" });
     }
   }
 }
