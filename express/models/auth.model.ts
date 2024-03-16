@@ -1,5 +1,6 @@
 import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, ProcedureCallPacket, PoolConnection, OkPacket } from 'mysql2';
 import db from '../db';
+import { count } from 'console';
 
 // getConnection 함수로 connection 객체 얻기
 const connection = db.getConnection();
@@ -297,8 +298,10 @@ class User {
   }
 
   // 특정 user 조회 - 필터링
-  static filteredUser(newFilter: any, result: (error: any, data: any) => void) {
-    console.log(`전달 받은 고객유형: ${newFilter.userType_id}`);
+  static filteredUser(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+    const offset = (currentPage - 1) * itemsPerPage;
+    const limit = itemsPerPage;
+    console.log(`전달 받은 값: ${newFilter.cor_ceoName}`);
     const joinedQuery = `
       SELECT * FROM users USER 
         JOIN users_info INFO 
@@ -309,11 +312,23 @@ class User {
           ON USER.users_id = ADDR.users_id
         WHERE 1 = 1
     `;
-    const corNameConditonQuery = newFilter.cor_corName && newFilter.cor_corName != '' ? `AND COR.cor_corName = ?` : '';
-    const ceoNameConditionQuery = newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? `AND COR.cor_ceoName = ?` : '';
-    const corNumConditionQuery = newFilter.cor_num && newFilter.cor_num != '' ? `AND COR.cor_num = ?` : '';
-    const userTypeConditionQuery = newFilter.userType_id && newFilter.userType_id != '' ? `AND USER.userType_id = ?` : '';
-    const userNameConditionQuery = newFilter.name && newFilter.name != '' ? `AND INFO.name = ?` : ''
+    const corNameConditonQuery = newFilter.cor_corName && newFilter.cor_corName != '' ? `AND COR.cor_corName LIKE ?` : '';
+    const ceoNameConditionQuery = newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? `AND COR.cor_ceoName LIKE ?` : '';
+    const corNumConditionQuery = newFilter.cor_num && newFilter.cor_num != '' ? `AND COR.cor_num LIKE ?` : '';
+    const userTypeConditionQuery = newFilter.userType_id && newFilter.userType_id != -1 ? `AND USER.userType_id LIKE ?` : '';
+    const userNameConditionQuery = newFilter.name && newFilter.name != '' ? `AND INFO.name LIKE ?` : ''
+    const countQuery = `
+        SELECT COUNT(*) as totalRows 
+        FROM users USER 
+        JOIN users_info INFO 
+          ON USER.users_id = INFO.users_id 
+        JOIN users_corInfo COR 
+          ON USER.users_id = COR.users_id 
+        JOIN users_address ADDR 
+          ON USER.users_id = ADDR.users_id
+        WHERE 1 = 1
+      `;
+    const limitedQuery = `LIMIT ${offset}, ${limit}`
 
     const query = `
       ${joinedQuery} 
@@ -322,15 +337,30 @@ class User {
       ${corNumConditionQuery} 
       ${userTypeConditionQuery}
       ${userNameConditionQuery}
+      ${limitedQuery}
       `;
 
-    const queryParams = [
-      newFilter.cor_corName && newFilter.cor_corName != '' ? newFilter.cor_corName : '',
-      newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? newFilter.cor_ceoName : '',
-      newFilter.cor_num && newFilter.cor_num != '' ? newFilter.cor_num : '',
-      newFilter.userType_id && newFilter.userType_id != -1 ? newFilter.userType_id : '',
-      newFilter.name && newFilter.name != '' ? newFilter.name : ''
-    ]
+    const countFullQuery = `
+      ${countQuery} 
+      ${corNameConditonQuery} 
+      ${ceoNameConditionQuery} 
+      ${corNumConditionQuery} 
+      ${userTypeConditionQuery}
+      ${userNameConditionQuery}
+      `;
+
+    const queryParams = [];
+
+    if (newFilter.cor_corName && newFilter.cor_corName != '')
+      queryParams.push(`%${newFilter.cor_corName}%`);
+    if (newFilter.cor_ceoName && newFilter.cor_ceoName != '')
+      queryParams.push(`%${newFilter.cor_ceoName}%`);
+    if (newFilter.cor_num && newFilter.cor_num != '')
+      queryParams.push(`%${newFilter.cor_num}%`);
+    if (newFilter.userType_id && newFilter.userType_id != -1)
+      queryParams.push(`%${newFilter.userType_id}%`);
+    if (newFilter.name && newFilter.name != '')
+      queryParams.push(`%${newFilter.name}%`);
 
     console.log(`[[Step_2: 전송받은 데이터]]\n${newFilter.name}`);
     const mysql = require('mysql');
@@ -338,23 +368,29 @@ class User {
     console.log(`[[Full Query]]\n${fullQuery}`); // 전체 쿼리 출력
 
 
-    connection.query(query, queryParams, (err: QueryError | Error | null, res: RowDataPacket[]) => {
+    connection.query(countFullQuery, queryParams, (err, countResult: any) => {
       if (err) {
-        console.error("에러 발생: ", err);
         result(err, null);
-        connection.releaseConnection;
         return;
       }
-      if (res.length === 0) {
-        const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
-        console.error(noMatchingUserError.message);
-        result(noMatchingUserError, null);
-        connection.releaseConnection;
-        return;
-      }
-      console.log("필터링 된 유저: ", res);
-      result(null, res);
-      connection.releaseConnection;
+      const totalRows = countResult[0].totalRows
+      connection.query(fullQuery, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          result(err, null);
+          return;
+        } else {
+          const totalPages = Math.ceil(totalRows / itemsPerPage);
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("고객정보가 갱신되었습니다: ", responseData);
+          result(null, responseData);
+        }
+      });
     });
   }
   // 유저 정렬 - 정렬

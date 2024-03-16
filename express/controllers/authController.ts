@@ -278,15 +278,20 @@ const authController = {
   * @returns {Promise<void>} 비동기 처리를 위한 프로미스 객체입니다.
   */
   userFilter: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string, 10) || 1;
+    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
+    const requestData = req.body;
+    console.log('body:', requestData);
     const filter = {
-      cor_corName: req.body.cor_corName, // 기업명(상호명)
-      cor_ceoName: req.body.cor_ceoName, // 대표명
-      cor_num: req.body.cor_num, // 사업자등록번호
-      userType_id: req.body.userType_id, // 고객타입 및 등급
-      name: req.body.name, //담당자
+      cor_corName: requestData.cor_corName || '', // 기업명(상호명)
+      cor_ceoName: requestData.cor_ceoName || '', // 대표명
+      cor_num: requestData.cor_num || '', // 사업자등록번호
+      userType_id: requestData.userType_id || -1, // 고객타입 및 등급
+      name: requestData.name || '', //담당자
     }
+
     console.log(`[Step_1: 전송받은 데이터]\n${filter}`);
-    User.filteredUser(filter, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    User.filteredUser(filter, currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       if (err) {
         return res.status(500).send({ message: err.message || "데이터를 갱신하는 중 서버 오류가 발생했습니다." });
       } else {
