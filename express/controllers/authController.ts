@@ -264,31 +264,33 @@ const authController = {
     })
   },
 
- /**
- * 고객 정보를 필터링합니다.
- * <필터링 조건>
- * - cor_corName(users_corInfo): 상호명/업체명
- * - cor_ceoName(users_corInfo): 대표자명
- * - cor_num(users_corInfo): 연락처
- * - userType_id(users): 고객 등급
- * - name(users_info) : 담당자
- * 
- * @param {Request} req - 요청 객체
- * @param {Response} res - 응답 객체
- * @returns {Promise<void>} 비동기 처리를 위한 프로미스 객체입니다.
- */
+  /**
+  * 고객 정보를 필터링합니다.
+  * <필터링 조건>
+  * - cor_corName(users_corInfo): 상호명/업체명
+  * - cor_ceoName(users_corInfo): 대표자명
+  * - cor_num(users_corInfo): 사업자등록번호
+  * - userType_id(users): 고객 등급
+  * - name(users_info) : 담당자
+  * 
+  * @param {Request} req - 요청 객체
+  * @param {Response} res - 응답 객체
+  * @returns {Promise<void>} 비동기 처리를 위한 프로미스 객체입니다.
+  */
   userFilter: async (req: Request, res: Response) => {
     const filter = {
-      cor_corName: req.body.cor_corName,
-      cor_ceoName: req.body.cor_ceoName,
-      cor_num: req.body.cor_num,
-      userType_id: req.body.userType_id
+      cor_corName: req.body.cor_corName, // 기업명(상호명)
+      cor_ceoName: req.body.cor_ceoName, // 대표명
+      cor_num: req.body.cor_num, // 사업자등록번호
+      userType_id: req.body.userType_id, // 고객타입 및 등급
+      name: req.body.name, //담당자
     }
-    User.filteredUser(filter, (err: QueryError | Error | null, data: RowDataPacket[] | null) => {
+    console.log(`[Step_1: 전송받은 데이터]\n${filter}`);
+    User.filteredUser(filter, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       if (err) {
-        return res.status(500).send({ message: err.message });
+        return res.status(500).send({ message: err.message || "데이터를 갱신하는 중 서버 오류가 발생했습니다." });
       } else {
-        return res.status(200).json({ message: '조건에 일치하는 유저를 조회합니다.', success: true, data });
+        return res.status(200).json({ message: '필터링이 완료 되었습니다.', success: true, data });
       }
     });
   },

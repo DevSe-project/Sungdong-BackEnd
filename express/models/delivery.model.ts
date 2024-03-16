@@ -143,32 +143,33 @@ class Delivery {
    * @param result 
    */
   static filteredData(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
-    const offset = (currentPage - 1) * itemsPerPage; 
+    const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
 
     // 조인 쿼리
     let joinedQuery = `
-    SELECT 
-      d.order_id, 
-      o.orderState,
-      d.delivery_selectedCor,
-      d.delivery_num, 
-      DATE_FORMAT(o.order_date, '%Y-%m-%d') as order_date, 
-      op.product_id, 
-      p.product_title,
-      op.selectedOption, 
-      p.product_price, 
-      op.order_cnt,
-      ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
-    FROM 
-      delivery d
-    JOIN 
-      \`order\` o ON d.order_id = o.order_id
-    JOIN 
-      order_product op ON o.order_id = op.order_id
-    JOIN 
-      product p ON op.product_id = p.product_id
-    WHERE 1=1`; // : always true condition
+      SELECT 
+        d.order_id, 
+        o.orderState,
+        d.delivery_selectedCor,
+        d.delivery_num, 
+        DATE_FORMAT(o.order_date, '%Y-%m-%d') as order_date, 
+        op.product_id, 
+        p.product_title,
+        op.selectedOption, 
+        p.product_price, 
+        op.order_cnt,
+        ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
+      FROM 
+       delivery d
+      JOIN 
+        \`order\` o ON d.order_id = o.order_id
+      JOIN 
+        order_product op ON o.order_id = op.order_id
+      JOIN 
+        product p ON op.product_id = p.product_id
+      WHERE 1=1
+    `; // : always true condition
 
     /** 배송 상태 필터링 쿼리 */
     const stateFitlerQuery = newFilter.orderState ? `AND orderState IN (?)` : ``;
@@ -224,7 +225,7 @@ class Delivery {
       }
       const totalRows = countResult[0].totalRows;
 
-      this.connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+      this.connection.query(query, queryParams, (err: QueryError | Error | null, res: RowDataPacket[]) => {
         if (err) {
           console.log("에러 발생: ", err);
           result(err, null);
@@ -238,7 +239,7 @@ class Delivery {
             currentPage: currentPage,
             totalPages: totalPages,
           }
-          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다                                                                                                   .
           console.log("상품이 갱신되었습니다: ", responseData);
           result(null, responseData);
           this.connection.releaseConnection;

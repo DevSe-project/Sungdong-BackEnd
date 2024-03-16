@@ -297,17 +297,48 @@ class User {
   }
 
   // 특정 user 조회 - 필터링
-  static filteredUser(user: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
-    const query = `SELECT * FROM users USER 
-        JOIN users_info INFO ON USER.users_id = INFO.users_id 
-        JOIN users_corInfo COR ON USER.users_id = COR.users_id 
-        JOIN users_address ADDR ON USER.users_id = ADDR.users_id 
-        WHERE cor_ceoName LIKE ?
-            AND cor_corName LIKE ?
-                AND cor_num LIKE ?
-                    AND USER.userType_id LIKE ?`;
+  static filteredUser(newFilter: any, result: (error: any, data: any) => void) {
+    console.log(`전달 받은 고객유형: ${newFilter.userType_id}`);
+    const joinedQuery = `
+      SELECT * FROM users USER 
+        JOIN users_info INFO 
+          ON USER.users_id = INFO.users_id 
+        JOIN users_corInfo COR 
+          ON USER.users_id = COR.users_id 
+        JOIN users_address ADDR 
+          ON USER.users_id = ADDR.users_id
+        WHERE 1 = 1
+    `;
+    const corNameConditonQuery = newFilter.cor_corName && newFilter.cor_corName != '' ? `AND COR.cor_corName = ?` : '';
+    const ceoNameConditionQuery = newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? `AND COR.cor_ceoName = ?` : '';
+    const corNumConditionQuery = newFilter.cor_num && newFilter.cor_num != '' ? `AND COR.cor_num = ?` : '';
+    const userTypeConditionQuery = newFilter.userType_id && newFilter.userType_id != '' ? `AND USER.userType_id = ?` : '';
+    const userNameConditionQuery = newFilter.name && newFilter.name != '' ? `AND INFO.name = ?` : ''
 
-    connection.query(query, [`% ${user.cor_ceoName}% `, ` % ${user.cor_corName}% `, ` % ${user.cor_num}% `, ` % ${user.userType_id}% `], (err: QueryError | Error | null, res: RowDataPacket[]) => {
+    const query = `
+      ${joinedQuery} 
+      ${corNameConditonQuery} 
+      ${ceoNameConditionQuery} 
+      ${corNumConditionQuery} 
+      ${userTypeConditionQuery}
+      ${userNameConditionQuery}
+      `;
+
+    const queryParams = [
+      newFilter.cor_corName && newFilter.cor_corName != '' ? newFilter.cor_corName : '',
+      newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? newFilter.cor_ceoName : '',
+      newFilter.cor_num && newFilter.cor_num != '' ? newFilter.cor_num : '',
+      newFilter.userType_id && newFilter.userType_id != -1 ? newFilter.userType_id : '',
+      newFilter.name && newFilter.name != '' ? newFilter.name : ''
+    ]
+
+    console.log(`[[Step_2: 전송받은 데이터]]\n${newFilter.name}`);
+    const mysql = require('mysql');
+    const fullQuery = mysql.format(query, queryParams);
+    console.log(`[[Full Query]]\n${fullQuery}`); // 전체 쿼리 출력
+
+
+    connection.query(query, queryParams, (err: QueryError | Error | null, res: RowDataPacket[]) => {
       if (err) {
         console.error("에러 발생: ", err);
         result(err, null);
