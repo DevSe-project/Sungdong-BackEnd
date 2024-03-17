@@ -14,6 +14,7 @@ import searchRouter from "./routes/search";
 import estimateRouter from "./routes/estimate";
 import raeRouter from "./routes/rae";
 import noticeRouter from "./routes/notice";
+import eventRouter from "./routes/event";
 const app: Express = express()
 const PORT = 5050;
 
@@ -39,7 +40,9 @@ app.use(session({
 }));
 
 // 정적 파일 제공을 위한 미들웨어 설정
+// 'images' 폴더를 정적 자원으로 제공
 app.use(express.static('images'));
+
 
 app.get("/", (req: Request, res: Response) => {
   const connection = db.getConnection()
@@ -60,12 +63,13 @@ declare module 'express-session' {
 app.use("/auth", authRouter);
 app.use("/category", categoryRouter);
 app.use("/delivery", dlRouter);
-app.use("/product", productRouter)
+app.use("/product", productRouter);
 app.use("/cart", cartRouter);
 app.use("/order", orderRouter);
 app.use("/search", searchRouter);
 app.use("/estimate", estimateRouter);
 app.use("/rae", raeRouter);
 app.use("/notice", noticeRouter);
+app.use("/event", eventRouter);
 
 app.listen(PORT, () => { console.log(`[SERVER] : http://localhost:${PORT} ON!`) })
