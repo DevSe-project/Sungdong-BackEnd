@@ -29,7 +29,7 @@ const authController = {
           const token = jwt.sign({
             userType_id: data.userType_id,
             users_id: data.users_id,
-          }, jwtSecret, { expiresIn: '1h' });
+          }, jwtSecret, { expiresIn: '3h' });
 
           req.user = data;
           res.cookie('jwt_token', token, { secure: true, sameSite: "none" });
