@@ -42,6 +42,7 @@ const eventController = {
   edit: async (req: Request, res: Response) => {
     const requestData = req.body;
     const newEvent = {
+      event_id: requestData.event_id,
       event_title: requestData.event_title,
       event_content: requestData.event_content,
       event_startDate: requestData.event_startDate,
