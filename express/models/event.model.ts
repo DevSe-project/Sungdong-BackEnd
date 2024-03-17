@@ -97,49 +97,22 @@ class Event {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
 
-    const baseQuery = "SELECT * FROM product JOIN product_option ON product.product_id = product_option.product_id";
-    const countBaseQuery = "SELECT COUNT(*) as totalRows FROM product JOIN product_option ON product.product_id = product_option.product_id";
-    
-    const conditionColumns = ["product.product_title", "product.product_brand", "product.product_id"];
-    const conditions = conditionColumns.filter(column => newFilter[column.split(".")[1]] !== undefined);
-    const conditionString = conditions.length > 0 ? "WHERE " + conditions.map(condition => condition + " LIKE ?").join(" AND ") : "";
-    
+    const baseQuery = "SELECT * FROM event WHERE 1=1";
+    const countBaseQuery = "SELECT COUNT(*) as totalRows FROM event WHERE 1=1";
 
-    const conditionFindParentsCategory = newFilter.parentsCategory_id ? `AND product.parentsCategory_id = ?` : '';
-    const conditionFindCategory = newFilter.category_id ? `AND product.category_id = ?` : '';
-    const conditionProductState = newFilter.product_state ? `AND product.product_state IN (?)` : '';
-    const conditionProductSupply = newFilter.product_supply ? `AND product.product_supply < ?` : '';
+    const conditionState = newFilter.eventState ? `AND eventState IN (?)` : '';
     const dateCondition = newFilter.dateType !== '' ? 
-    newFilter.dateType === "created" ? 
-        `AND product.product_created BETWEEN '${newFilter.dateStart} 00:00:00' AND '${newFilter.dateEnd} 23:59:59'` : 
-        `AND product.product_updated BETWEEN '${newFilter.dateStart}' AND '${newFilter.dateEnd}'` : 
-    '';
+        `AND ${newFilter.dateType} BETWEEN '${newFilter.dateStart}' AND '${newFilter.dateEnd}'` : '';
 
 
-    const orderBy = "ORDER BY product.product_id DESC";
+    const orderBy = "ORDER BY event_startDate DESC";
     
-    const query = `${baseQuery} ${conditionString} ${conditionFindParentsCategory} ${conditionFindCategory} ${conditionProductState} ${conditionProductSupply} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
-    const countQuery = `${countBaseQuery} ${conditionString} ${conditionFindParentsCategory} ${conditionFindCategory} ${conditionProductState} ${conditionProductSupply} ${dateCondition}`;
-    const queryParams = [
-        `%${newFilter.product_title || ''}%`,
-        `%${newFilter.product_brand || ''}%`,
-        `%${newFilter.product_id || ''}%`,
-    ];
+    const query = `${baseQuery} ${conditionState} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+    const countQuery = `${countBaseQuery} ${conditionState} ${dateCondition}`;
+    const queryParams:any = [];
 
-    if (newFilter.parentsCategory_id) {
-        queryParams.push(newFilter.parentsCategory_id);
-    }
-
-    if (newFilter.category_id) {
-        queryParams.push(newFilter.category_id);
-    }
-
-    if (newFilter.product_state) {
-        queryParams.push(newFilter.product_state);
-    }
-
-    if (newFilter.product_supply) {
-        queryParams.push(newFilter.product_supply);
+    if (newFilter.eventState) {
+        queryParams.push(newFilter.eventState);
     }
 
     // 전체 데이터 크기 확인을 위한 쿼리
