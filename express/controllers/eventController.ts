@@ -41,38 +41,13 @@ const eventController = {
   },
   edit: async (req: Request, res: Response) => {
     const requestData = req.body;
-    const today = new Date();
-    const formattedDate = new Intl.DateTimeFormat('en-Us', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(today);
-    const [month, day, year] = formattedDate.split('/');
-    const rearrangedDate = `${year}-${month}-${day}`;
     const newEvent = {
-      Event1: {
-        Event_id: requestData.Event_id,
-        category_id: requestData.category_id,
-        parentsCategory_id: requestData.parentsCategory_id,
-        Event_title: requestData.Event_title,
-        Event_content: requestData.Event_content,
-        Event_model: requestData.Event_model,
-        Event_price: requestData.Event_price,
-        Event_discount: requestData.Event_discount,
-        Event_image_original: requestData.Event_image_original,
-        Event_updated: rearrangedDate,
-        Event_supply: requestData.Event_supply,
-        Event_brand: requestData.Event_brand,
-        Event_madeIn: requestData.Event_madeIn,
-        Event_state: requestData.Event_state,
-        Event_spec: requestData.Event_spec
-      },
-      Event2: {
-        Event_id: requestData.Event_id,
-        category_id: requestData.category_id,
-        parentsCategory_id: requestData.parentsCategory_id,
-        ...requestData.option
-      },
+      event_title: requestData.event_title,
+      event_content: requestData.event_content,
+      event_startDate: requestData.event_startDate,
+      event_endDate: requestData.event_endDate,
+      eventState: requestData.eventState,
+      event_image: requestData.event_image
     };
     // 업데이트된 데이터로 데이터베이스 업데이트
     Event.edit(newEvent, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {

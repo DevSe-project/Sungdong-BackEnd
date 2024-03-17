@@ -179,19 +179,18 @@ class Event {
 }
 
 
-  static edit(newProduct: any, result: (error: any, response: any) => void) {
+  static edit(obj: any, result: (error: any, response: any) => void) {
     performTransaction((connection: PoolConnection) => {
 
       const queries = [
-        "UPDATE product SET ? WHERE product_id = ?",
-        "UPDATE product_option SET ? WHERE product_id = ?",
+        "UPDATE event SET ? WHERE event_id = ?",
       ];
 
       const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
 
       function executeQuery(queryIndex: number) {
         if (queryIndex < queries.length) {
-          connection.query(queries[queryIndex], [newProduct[`product${queryIndex + 1}`], newProduct[`product${queryIndex + 1}`].product_id], (err, res) => {
+          connection.query(queries[queryIndex], [obj, obj.event_id], (err, res) => {
             if (err) {
               console.log(`쿼리 실행 중 에러 발생 (인덱스 ${queryIndex}): `, err);
               connection.rollback(() => {
