@@ -266,7 +266,8 @@ class Order {
       FROM order_product 
       JOIN product 
         ON order_product.product_id = product.product_id 
-      WHERE order_id = ?`;
+      WHERE order_id = ?
+    `;
     connection.query(query, order_id, (err: QueryError | null, res: RowDataPacket[]) => {
       if (err) {
         console.log("에러 발생: ", err);
@@ -296,7 +297,8 @@ class Order {
         JOIN delivery 
           ON order.order_id = delivery.order_id 
       WHERE order.users_id = ? 
-        AND order.order_id = ?`;
+        AND order.order_id = ?
+    `;
     connection.query(query, [user_id, order_id], (err: QueryError | null, res: RowDataPacket[]) => {
       if (err) {
         console.log("에러 발생: ", err);
@@ -320,7 +322,8 @@ class Order {
       JOIN delivery 
         ON order.order_id = delivery.order_id 
       WHERE order.users_id = ? 
-      ORDER BY order.order_date DESC LIMIT 1`;
+      ORDER BY order.order_date DESC LIMIT 1
+    `;
     connection.query(query, userData, (err: QueryError | null, res: RowDataPacket[]) => {
       try {
         if (err) {
