@@ -18,6 +18,9 @@ orderRouter.put(`/user/cancel`, orderController.requestCancelOrder);
 
 orderRouter.post(`/search`, orderController.search);
 
+//관리자 페이지 모듈(length 출력)
+orderRouter.get("/admin/module", orderController.adminModule);
+
 orderRouter.post("/findList", orderController.findList);
 orderRouter.post("/findSelectOrderList", orderController.findSelectOrderList);
 orderRouter.post("/findSelectOrderProduct", orderController.selectOrderProductById);

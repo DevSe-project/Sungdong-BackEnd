@@ -9,6 +9,9 @@ raeRouter.post("/list", raeController.list);
 
 //---------- 관리자 ----------
 
+//관리자 페이지 모듈(length 출력)
+raeRouter.get("/admin/module", raeController.adminModule);
+
 //관리자 반품-교환 조회
 raeRouter.get("/admin/list", raeController.adminList);
 raeRouter.post("/admin/list", raeController.adminList);

@@ -226,6 +226,35 @@ class Order {
       });
     })
   }
+
+  //관리자의 모듈 개수 불러오기
+  static adminModule(
+    result: (arg0: any, arg1: any) => void
+  ) {
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM \`order\` JOIN order_product ON order.order_id = order_product.order_id WHERE order.orderState = 0) AS noPay,
+      (SELECT COUNT(*) FROM \`order\` JOIN order_product ON order.order_id = order_product.order_id WHERE order.orderState = 1) AS pay,
+      (SELECT COUNT(*) FROM \`order\` JOIN delivery ON order.order_id = delivery.order_id WHERE delivery.delivery_date = ${new Date().toISOString().split('T')[0]}) AS todayDelivery`;
+      connection.query(
+        query,
+        (err: QueryError | null, res: RowDataPacket[]) => {
+          if (err) {
+            console.log(err);
+            result(err, null);
+            connection.releaseConnection;
+            return;
+          } else {
+            console.log("상품이 갱신되었습니다: ", res);
+            result(null, res);
+            connection.releaseConnection;
+            return;
+          }
+        }
+      );
+    }
+
   //가장 최근 회원의 주문 내역에서 주문 상품들 뽑아내기
   static findList(user_id: string, result: (arg0: any, arg1: any) => void) {
     const query = `

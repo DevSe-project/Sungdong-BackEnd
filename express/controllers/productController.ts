@@ -1,5 +1,5 @@
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
-import { Request, Response } from "express"
+import express, { Request, Response } from "express"
 import Product from "../models/product.model";
 import multer, { Multer } from "multer";
 import path from "path";
@@ -235,10 +235,11 @@ const productController = {
     })
   },
   upload: async (req: Request, res: Response) => {
+    express.static('images');
     console.log('이미지 업로드 요청 받음');
     // 이미지 업로드를 위한 multer 설정
     const storage = multer.diskStorage({
-      destination: 'images/', // 이미지를 저장할 폴더
+      destination: 'images', // 이미지를 저장할 폴더
       filename: (req, file, cb) => {
         // 파일명 중복을 피하기 위해 고유한 파일명 생성
         cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
