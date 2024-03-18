@@ -8,7 +8,12 @@ const performTransaction = db.performTransaction;
 
 class User {
 
-  // user 튜플 추가 - 회원가입
+  /* --------------------------로그인/회원가입/로그아웃-------------------------- */
+  /** user 튜플 추가 - 회원가입
+   * 
+   * @param newUser 
+   * @param result 
+   */
   static create(newUser: any, result: (arg0: any, arg1: any) => void) {
     performTransaction((connection: PoolConnection) => {
 
@@ -56,7 +61,12 @@ class User {
       executeQuery(0);
     });
   }
-  // user 생성 시 UserID 중복검사
+
+  /** user 생성 시 UserID 중복검사
+   * 
+   * @param userID 
+   * @param result 
+   */
   static findByUserID(userID: any, result: (arg0: QueryError | { kind: string; } | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
     connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
       if (err) {
@@ -77,7 +87,12 @@ class User {
       }
     });
   }
-  // userID 찾기
+
+  /** userID 찾기
+   * 
+   * @param user 
+   * @param result 
+   */
   static findUserID(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
     connection.query('SELECT a.userId FROM users a JOIN users_corInfo b ON a.users_id = b.users_id WHERE b.cor_ceoName = ? AND b.cor_num = ?', [user.cor_ceoName, user.cor_num], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
       if (err) {
@@ -98,7 +113,12 @@ class User {
       }
     });
   }
-  // userPw 찾기
+
+  /** userPW 찾기
+   * 
+   * @param user 
+   * @param result 
+   */
   static findUserPw(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
     connection.query('SELECT a.userPassword FROM users a JOIN users_corInfo b ON a.users_id = b.users_id WHERE a.userId = ? AND b.cor_num = ?', [user.userId, user.cor_num], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
       if (err) {
@@ -141,7 +161,19 @@ class User {
       }
     });
   }
-  // Welcome Module에 필요한 user(users_corName), order(orderState)정보 조회
+
+  /* --------------------------마이페이지-------------------------- */
+  static modifyPassword(newPassword: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+
+  }
+
+  /* --------------------------WelcomeModule-------------------------- */
+
+  /** Welcome Module에 필요한 user(users_corName), order(orderState)정보 조회
+   * 
+   * @param user 
+   * @param result 
+   */
   static welcomeModuleInfo(user: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
     connection.query(`
       SELECT 
@@ -180,7 +212,12 @@ class User {
       }
     });
   }
-  // 로그인
+
+  /** 로그인
+   * 
+   * @param user 
+   * @param result 
+   */
   static login(user: { userId: any; userPassword: any; }, result: (arg0: QueryError | Error | null, arg1: any) => void) {
     connection.query('SELECT * FROM users WHERE userId = ?  AND userPassword = ?', [user.userId, user.userPassword], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
       if (err) {
@@ -203,7 +240,11 @@ class User {
     });
   }
 
-  // user 생성 id로 조회
+  /** user 생성 id로 조회
+   * 
+   * @param userID 
+   * @param result 
+   */
   static findByID(userID: any, result: (arg0: Error | QueryError | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
     connection.query('SELECT * FROM users WHERE userId = ?', userID, (err: Error | QueryError | null, res: any) => {
       if (err) {
@@ -228,8 +269,12 @@ class User {
       connection.releaseConnection;
     });
   }
+
   /*----------------------------- 유저 관리 ----------------------------------*/
-  // user 전체 조회
+  /** 모든 유저 조회
+   * 
+   * @param result 
+   */
   static getAll(result: (arg0: QueryError | null, arg1: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => void) {
     const query = `SELECT * FROM users a 
         JOIN users_info b 
@@ -252,7 +297,12 @@ class User {
     });
   }
 
-  // 페이지와 포스팅 개수에 따른 user 조회
+  /** 페이지와 포스팅 개수에 따른 user 조회
+   * 
+   * @param currentPage 
+   * @param itemsPerPage 
+   * @param result 
+   */
   static selectAllToPageNumber(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
@@ -297,7 +347,13 @@ class User {
     });
   }
 
-  // 특정 user 조회 - 필터링
+  /** 특정 user 조회 - 필터링
+   * 
+   * @param newFilter 
+   * @param currentPage 
+   * @param itemsPerPage 
+   * @param result 
+   */
   static filteredUser(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
@@ -393,7 +449,13 @@ class User {
       });
     });
   }
-  // 유저 정렬 - 정렬
+
+  /** 유저 정렬
+   * 
+   * @param user 
+   * @param result 
+   * @returns 
+   */
   static sortedUser(user: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
     // 사용자 입력 값으로부터 컬럼 및 정렬 방식을 동적으로 생성
     const orderByColumns = [user.first, user.second, user.third].filter(Boolean); // 비어있는 값 제거
@@ -434,7 +496,11 @@ class User {
     });
   }
 
-  // 고객 정보 수정(단일 또는 여러 고객)
+  /** 일괄/단일 고객정보 업데이트
+   * 
+   * @param users 
+   * @param result 
+   */
   static updateUser(users: any, result: (error: any, response: any) => void) {
     // 풀에서 연결을 가져옴
     connection.getConnection((err, conn) => {
@@ -475,7 +541,11 @@ class User {
       });
     });
 
-    // 단일 사용자 정보 업데이트 함수
+    /** 단일 고객 정보 업데이트
+     * 
+     * @param conn 
+     * @param user 
+     */
     function updateSingleUser(conn: any, user: any): void {
       // 사용자 정보 업데이트 쿼리 실행
       conn.query(
@@ -544,9 +614,11 @@ class User {
     }
   }
 
-
-
-  // 고객 삭제(단일, 여러 고객 삭제 가능)
+  /** 고객 삭제(단일/일괄 삭제)
+   * 
+   * @param users 
+   * @param result 
+   */
   static removeUser(users: string[], result: (error: any, response: any) => void) {
     const query = `DELETE FROM users WHERE users_id IN (?)`;
 
@@ -570,7 +642,10 @@ class User {
 
   /*------------------------------코드-----------------------------*/
 
-  // user 코드 조회
+  /** user 코드 조회 
+   * 
+   * @param result 
+   */
   static getAllCode(result: (arg0: QueryError | null, arg1: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => void) {
     connection.query('SELECT * FROM users_code', (err: QueryError | null, res: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
       if (err) {
@@ -584,7 +659,13 @@ class User {
       connection.releaseConnection;
     });
   }
-  // 코드 생성
+
+
+  /** 코드 생성
+   * 
+   * @param code 
+   * @param result 
+   */
   static generateCode(code: any, result: (err: QueryError | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => any) {
     connection.query('INSERT INTO users_code SET ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][]) => {
       if (err) {
@@ -598,7 +679,12 @@ class User {
       connection.releaseConnection;
     });
   }
-  //코드 검사
+
+  /** 코드 검사
+   * 
+   * @param code 
+   * @param result 
+   */
   static checkCode(code: any, result: (err: QueryError | Error | null, result: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => any) {
     connection.query('SELECT user_code FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: any) => {
       if (err) {
@@ -620,7 +706,12 @@ class User {
       }
     });
   }
-  //코드 삭제
+
+  /** 코드 삭제
+   * 
+   * @param code 
+   * @param result 
+   */
   static removeCode(code: any, result: (arg0: QueryError | null, arg1: any) => void) {
     connection.query('DELETE FROM users_code WHERE user_code = ?', code, (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
       if (err) {
@@ -634,7 +725,8 @@ class User {
       connection.releaseConnection;
     });
   }
-  /*----------------------------------------------------------*/
+
+  /*----------------------------이거 뭐지? 삭제해도 되는 건가? 쓰이는 곳이 없는데------------------------------*/
   // user id로 수정
   static updateByID(id: any, user: { email: any; name: any; }, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
     connection.query('UPDATE users SET email = ?, name = ? WHERE userId = ?',

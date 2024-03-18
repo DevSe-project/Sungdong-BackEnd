@@ -8,9 +8,9 @@ import shortid from "shortid";
 const jwtSecret = 'sung_dong';
 
 const authController = {
-  // 로그인
-  /**
-   * 로그인
+
+  /*------------------ 회원가입/로그인/로그아웃 --------------------*/
+  /** 로그인
    * @param req 
    * @param res 
    */
@@ -41,12 +41,21 @@ const authController = {
       res.status(500).json({ success: false, message: "서버 오류 발생" });
     }
   },
-  // 로그아웃
+
+  /** 로그아웃
+   * @param req 
+   * @param res 
+   */
   logout: async (req: Request, res: Response) => {
     res.clearCookie('jwt_token', { secure: true, sameSite: 'none' });
     res.send({ success: true, message: "로그아웃 되었습니다." });
   },
-  // 가입 조건 확인(내용 충족)
+
+  /** 가입조건 확인(내용 충족 - JoinForm)
+   * 
+   * @param req 
+   * @param res 
+   */
   register: async (req: Request, res: Response) => {
     if (!req.body) {
       res.status(400).send({
@@ -121,7 +130,12 @@ const authController = {
     })
   },
 
-  // 마이페이지
+  /*------------------ 마이페이지 --------------------*/
+  /** 마이페이지: 로그인한 사용자의 정보를 불러옵니다.
+   * @param req 
+   * @param res 
+   * @returns 
+   */
   info: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token) {
@@ -144,7 +158,38 @@ const authController = {
     })
   },
 
-  // Welcome Module
+  pwModify: async (req: Request, res: Response) => {
+    const token = req.cookies.jwt_token;
+    const newPassword = {
+      prevPW: req.body.now_password,
+      newPW: req.body.re_password,
+      newPWConfirm: req.body.confirm_re_password
+    }
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    const checkPrevPW = req.user.userPassword === newPassword.prevPW;
+
+    // 입력한 현재 비밀번호가 DB의 해당 고객의 비밀번호와 일치한다면 쿼리 실행(newPW와 newPWConfirm의 일치여부는 프론트에서 진행)
+    if (checkPrevPW) {
+      User.modifyPassword(newPassword, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+        if (err)
+          return res.status(500).json({ message: err });
+        else
+          return res.status(200).json({ message: '변경이 완료되었습니다.', success: true });
+      })
+    }
+    if (!checkPrevPW) { // 현재비밀번호가 틀렸다면 에러메세지
+      return res.status(200).json({ message: '고객님의 비밀번호와 입력하신 현재 비밀번호가 일치하지 않습니다.', success: false });
+    }
+  },
+
+  /*------------------ WelcomeModule --------------------*/
+  /** WelcomeModule에 필요한 정보를 불러옵니다. 
+   * 고안: info를 재활용?
+   * @param req 
+   * @param res 
+   * @returns 
+   */
   welcomeInfo: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     if (!token) {
