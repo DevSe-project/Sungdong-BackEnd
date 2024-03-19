@@ -347,15 +347,19 @@ const orderController = {
   filter: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string) || 1;
     const postsPerPage = parseInt(req.query.post as string) || 10;
-    const requestData = req.body;
+    const requestData = req.body?.filter ? req.body?.filter : req.body;
+    const orderState = req.body?.limit ? req.body?.limit?.orderState : null;
+    console.log(requestData);
+    console.log(orderState);
     const newFilter = {
       selectFilter: requestData.selectFilter || '',
       filterValue: requestData.filterValue || '',
       deliveryType: requestData.deliveryType || '',
       dateStart: requestData.date.start,
-      dateEnd: requestData.date.end
+      dateEnd: requestData.date.end,
+      orderState: requestData.orderState ? requestData.orderState : ''  || ''
     }
-    Order.filter(newFilter, currentPage, postsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    Order.filter(newFilter, currentPage, postsPerPage, orderState, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "주문을 갱신하는 중 서버 오류가 발생했습니다." });
