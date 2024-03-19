@@ -220,10 +220,10 @@ class User {
         u.users_id AS users_id,
         u.userType_id AS userType_id,
         uc.cor_corName AS cor_corName, 
-        COUNT(o.order_id) AS ordersCount,
-        SUM(CASE WHEN o.orderState IN(0,1,2) THEN 1 ELSE 0 END) AS preparing_orders,
-        SUM(CASE WHEN o.orderState IN(3,5) THEN 1 ELSE 0 END) AS shipping_orders,
-        SUM(CASE WHEN o.orderState IN(4) THEN 1 ELSE 0 END) AS completed_orders
+        SUM(CASE WHEN o.orderState IN(0,1) THEN 1 ELSE 0 END) AS ordersCount,
+        SUM(CASE WHEN o.orderState IN(3) THEN 1 ELSE 0 END) AS preparing_orders,
+        SUM(CASE WHEN o.orderState IN(4) THEN 1 ELSE 0 END) AS shipping_orders,
+        SUM(CASE WHEN o.orderState IN(5) THEN 1 ELSE 0 END) AS completed_orders
       FROM 
         users u 
       JOIN 
