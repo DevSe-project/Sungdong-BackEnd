@@ -271,7 +271,7 @@ const orderController = {
   },
 
 
-  // 모든 배송 데이터 조회
+  // 모든 배송 데이터 조회 - 주문완료 건
   orderAll: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
     const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴

@@ -422,6 +422,7 @@ class Order {
         SELECT 
         o.*,
         d.*,
+        cor.cor_corName AS corName,
         product_length,
         order_sum,
         product_title  
@@ -429,6 +430,8 @@ class Order {
           delivery d
           JOIN 
           \`order\` o ON d.order_id = o.order_id
+          JOIN
+          users_corInfo cor ON o.users_id = cor.users_id
           JOIN (
             SELECT 
               o.order_id,
