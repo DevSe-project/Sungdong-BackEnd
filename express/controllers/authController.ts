@@ -19,7 +19,7 @@ const authController = {
 
     try {
       User.login(loadUser, (err: QueryError | Error | null, data: {
-        grade: any; users_id: number, userId: any, userPassword: any, userType_id: number
+        grade: any; users_id: number, userId: any, userPassword: any, userType_id: number,
       } | null) => {
         if (err) {
           console.error(err);
@@ -29,6 +29,7 @@ const authController = {
           const token = jwt.sign({
             userType_id: data.userType_id,
             users_id: data.users_id,
+            userPassword: data.userPassword
           }, jwtSecret, { expiresIn: '3h' });
 
           req.user = data;
@@ -158,7 +159,16 @@ const authController = {
     })
   },
 
-  pwModify: async (req: Request, res: Response) => {
+  /** 비밀번호를 변경(프론트에서 조건 검사를 실시했지만, 2중 보안으로 한번 더 실시)
+   * * [쿼리실행 전 조건]
+   *    * 유저 토큰의 비밀번호와 입력받은 현재 비밀번호가 일치
+   * * [쿼리 실행 중 조건]
+   *    * 토큰의 users_id와 일치하는 유저의 비밀번호를 업데이트
+   * @param req now_password, re_password, confirm_re_password
+   * @param res 
+   * @returns 
+   */
+  pwUpdate: async (req: Request, res: Response) => {
     const token = req.cookies.jwt_token;
     const newPassword = {
       prevPW: req.body.now_password,
@@ -167,17 +177,36 @@ const authController = {
     }
     const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded;
+    const users_id = req.user.users_id;
     const checkPrevPW = req.user.userPassword === newPassword.prevPW;
+    console.log(`
+      유저 고유번호: ${req.user.users_id}
+      기존 비밀번호: ${req.user.userPassword}
+      입력받은 현재 비밀번호: ${newPassword.prevPW}
+      새로운 비밀번호: ${newPassword.newPW}
+    `);
 
     // 입력한 현재 비밀번호가 DB의 해당 고객의 비밀번호와 일치한다면 쿼리 실행(newPW와 newPWConfirm의 일치여부는 프론트에서 진행)
     if (checkPrevPW) {
-      User.modifyPassword(newPassword, (err: QueryError | string | null, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
-        if (err)
-          return res.status(500).json({ message: err });
-        else
-          return res.status(200).json({ message: '변경이 완료되었습니다.', success: true });
+      User.modifyPassword(newPassword, users_id, (err: QueryError | String | null, data: RowDataPacket | ResultSetHeader | RowDataPacket[] | null) => {
+        if (err) {
+          return res.status(500).json({ message: err, success: false });
+        } else {
+          // 비밀번호 변경 후 새로운 토큰 발급
+          const token = jwt.sign({
+            userType_id: req.user.userType_id,
+            users_id: req.user.users_id,
+            userPassword: newPassword.newPWConfirm // 새로운 비밀번호로 토큰에 저장
+          }, jwtSecret, { expiresIn: '3h' });
+
+          // 쿠키에 새로운 토큰 설정
+          res.cookie('jwt_token', token, { secure: true, sameSite: "none" });
+
+          return res.status(200).json({ message: '변경이 완료되었습니다.', success: true, data });
+        }
       })
     }
+
     if (!checkPrevPW) { // 현재비밀번호가 틀렸다면 에러메세지
       return res.status(200).json({ message: '고객님의 비밀번호와 입력하신 현재 비밀번호가 일치하지 않습니다.', success: false });
     }

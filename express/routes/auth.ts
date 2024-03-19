@@ -16,7 +16,7 @@ authRouter.post("/findPw", authController.findPw);
 
 /*------------------ 마이페이지 --------------------*/
 authRouter.get("/info", authController.info);
-authRouter.post("/pwUpdate", authController.pwModify);
+authRouter.post("/mypage/password", authController.pwUpdate);
 
 /*------------------ WelcomeModule --------------------*/
 authRouter.get("/welcomeInfo", authController.welcomeInfo);

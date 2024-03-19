@@ -1,6 +1,5 @@
 import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, ProcedureCallPacket, PoolConnection, OkPacket } from 'mysql2';
 import db from '../db';
-import { count } from 'console';
 
 // getConnection 함수로 connection 객체 얻기
 const connection = db.getConnection();
@@ -163,8 +162,49 @@ class User {
   }
 
   /* --------------------------마이페이지-------------------------- */
-  static modifyPassword(newPassword: any, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+  /**
+   * 
+   * @param newPassword 
+   *  * prevPW: now_password 이전 비밀번호
+   *  * newPW: re_password 새 비밀번호
+   *  * newPWConfirm: confirm_re_password 새 비밀번호 확인
+   * @param result 
+   */
+  static modifyPassword(newPassword: any, users_id: string, result: (arg0: QueryError | string | null, arg1: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => void) {
+    // 업데이트 쿼리
+    const updateQuery = `
+      UPDATE users SET userPassword = ?
+      WHERE users_id = ?
+    `
+    // 쿼리 파라미터
+    const queryParams = [
+      newPassword.newPWConfirm,
+      users_id
+    ];
 
+    // 디버깅: 실행쿼리 확인
+    const mysql = require('mysql');
+    const fullQuery = mysql.format(updateQuery, queryParams);
+    console.log(`
+      [ 실행쿼리 ] 
+      ${fullQuery}
+    `);
+
+    // 업데이트 쿼리 실행
+    connection.query(updateQuery, queryParams, (err, res) => {
+      if (err) {
+        console.log(`비밀번호 수정 중 에러 발생: ${JSON.stringify(err)}`);
+
+        result(err, null);
+        connection.releaseConnection;
+      } else {
+        console.log(`비밀번호 변경 완료: ${JSON.stringify(res)}`);
+
+        result(null, err);
+        connection.releaseConnection;
+      }
+
+    })
   }
 
   /* --------------------------WelcomeModule-------------------------- */
@@ -549,11 +589,17 @@ class User {
     function updateSingleUser(conn: any, user: any): void {
       // 사용자 정보 업데이트 쿼리 실행
       conn.query(
-        `UPDATE users_address
-      SET zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ?
-      WHERE address_id = ?`,
+        `
+        UPDATE 
+          users_address
+        SET 
+          zonecode = ?, roadAddress = ?, bname = ?, 
+          buildingName = ?, jibunAddress = ?, addressDetail = ?
+        WHERE 
+          address_id = ?
+        `,
         [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id],
-        (error: any, results: any, fields: any) => {
+        (error: any) => {
           if (error) {
             conn.rollback(() => {
               console.log('쿼리 실행 중 에러 발생:', error);
@@ -567,7 +613,7 @@ class User {
               SET email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
               WHERE users_info_id = ?`,
             [user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, user.users_info_id],
-            (error: any, results: any, fields: any) => {
+            (error: any) => {
               if (error) {
                 conn.rollback(() => {
                   console.log('쿼리 실행 중 에러 발생:', error);
@@ -581,7 +627,7 @@ class User {
                       SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
                       WHERE users_id = ?`,
                 [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id],
-                (error: any, results: any, fields: any) => {
+                (error: any) => {
                   if (error) {
                     conn.rollback(() => {
                       console.log('쿼리 실행 중 에러 발생:', error);
@@ -595,7 +641,7 @@ class User {
                               SET userType_id = ?, userId = ?, userPassword = ?
                               WHERE users_id = ?`,
                     [user.userType_id, user.userId, user.userPassword, user.users_id],
-                    (error: any, results: any, fields: any) => {
+                    (error: any) => {
                       if (error) {
                         conn.rollback(() => {
                           console.log('쿼리 실행 중 에러 발생:', error);
@@ -725,69 +771,6 @@ class User {
       connection.releaseConnection;
     });
   }
-
-  /*----------------------------이거 뭐지? 삭제해도 되는 건가? 쓰이는 곳이 없는데------------------------------*/
-  // user id로 수정
-  static updateByID(id: any, user: { email: any; name: any; }, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
-    connection.query('UPDATE users SET email = ?, name = ? WHERE userId = ?',
-      [user.email, user.name, id], (err: QueryError | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
-        if (err) {
-          console.log("에러 발생: ", err);
-          result(err, null);
-          connection.releaseConnection;
-          return;
-        }
-        if (res.length == 0) {
-          // id 결과가 없을 시 
-          result({ kind: "not_found" }, null);
-          connection.releaseConnection;
-          return;
-        }
-        console.log("회원을 찾았습니다: ", { id: id, ...user });
-        result(null, { id: id, ...user });
-        connection.releaseConnection;
-      });
-  }
-  // user id로 삭제
-  static remove(id: any, result: (arg0: QueryError | { kind: string; } | null, arg1: any) => void) {
-    connection.query('DELETE FROM users WHERE id = ?', id, (err: QueryError | { kind: string; } | null, res: RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][], fields: FieldPacket[]) => {
-      if (err) {
-        console.log("error: ", err);
-        result(err, null);
-        connection.releaseConnection;
-        return;
-      }
-      if (res.length == 0) {
-        // id 결과가 없을 시 
-        result({ kind: "not_found" }, null);
-        connection.releaseConnection;
-        return;
-      }
-      console.log("해당 ID의 회원이 정상적으로 삭제되었습니다: ", id);
-      result(null, res);
-      connection.releaseConnection;
-    });
-  }
-  // user 전체 삭제
-  static removeAll(result: (arg0: { kind: string; } | null, arg1: any) => void) {
-    connection.query('DELETE FROM users', (err: any, res: { affectedRows: number; }) => {
-      if (err) {
-        console.log("error: ", err);
-        result(err, null);
-        connection.releaseConnection;
-        return;
-      }
-      if (res.affectedRows == 0) {
-        result({ kind: "not_found" }, null);
-        connection.releaseConnection;
-        return;
-      }
-      console.log(`${res.affectedRows} 명의 회원을 삭제하였습니다.`);
-      result(null, res);
-      connection.releaseConnection;
-    });
-  }
-  /*-------------------------------------------------------------*/
 }
 
 export = User;
