@@ -87,7 +87,7 @@ class Cart {
   }
   static findOne(data: any[], result: (arg0: any, arg1: any) => void) {
     let query;
-    if (data[3] === null) {
+    if (data[3] === 'null') {
       query = `
                 SELECT * 
                 FROM cart_product

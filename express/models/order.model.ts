@@ -546,7 +546,7 @@ class Order {
     }
   }
 
-  static filter(newFilter: any, currentPage: number, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
+  static filter(newFilter: any, currentPage: number, postsPerPage: number, orderState:number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
 
@@ -554,6 +554,7 @@ class Order {
     SELECT 
       o.*, 
       d.*,        
+      cor.cor_corName AS corName,
       product_length,
       order_sum,
       product_title 
@@ -563,6 +564,9 @@ class Order {
         delivery AS d
     ON 
         o.order_id = d.order_id
+    JOIN
+      users_corInfo AS cor 
+    ON o.users_id = cor.users_id
     JOIN (
       SELECT 
           o.order_id,
@@ -581,8 +585,11 @@ class Order {
       ON o.order_id = subquery.order_id`;
     const countBaseQuery = "SELECT COUNT(*) as totalRows FROM \`order\` AS o JOIN delivery AS d ON o.order_id = d.order_id";
 
-    const condition = `WHERE o.orderState < 2 AND (o.isCancel = 0 OR o.isCancel IS NULL)`
-    const conditionDelType = newFilter.deliveryType ? `AND d.deliveryType = ?` : '';
+    const condition = `WHERE 
+    ${orderState === 1 ? newFilter.orderState !== '' ? `(o.orderState = ${newFilter.orderState})` : 'o.orderState IN (0,5,6)' : 'o.orderState = 1'}`
+    const conditionNotOrderState = `${orderState !== 1 ? 'AND' : ''}`
+    const conditionNotOrderState1 = `${orderState !== 1 ? '(o.isCancel = \'0\' OR o.isCancel IS NULL)' : ''}`
+    const conditionDelType = newFilter.deliveryType ? `AND d.deliveryType = '${newFilter.deliveryType}'` : '';
     const conditionFilter = newFilter.selectFilter && newFilter.filterValue ? `AND ${newFilter.selectFilter} LIKE ?` : '';
     const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?
       `AND o.order_date BETWEEN '${newFilter.dateStart} 00:00:00' AND '${newFilter.dateEnd} 23:59:59'`
@@ -591,8 +598,8 @@ class Order {
 
     const orderBy = "ORDER BY o.order_id DESC";
 
-    const query = `${baseQuery} ${condition} ${conditionDelType} ${conditionFilter} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
-    const countQuery = `${countBaseQuery} ${condition} ${conditionDelType} ${conditionFilter} ${dateCondition}`;
+    const query = `${baseQuery} ${condition} ${conditionNotOrderState} ${conditionNotOrderState1} ${conditionDelType} ${conditionFilter} ${dateCondition} ${orderBy} LIMIT ${offset}, ${limit}`;
+    const countQuery = `${countBaseQuery} ${condition} ${conditionNotOrderState} ${conditionNotOrderState1} ${conditionDelType} ${conditionFilter} ${dateCondition}`;
     const queryParams: string[] = [];
 
     if (newFilter.filterValue) {
