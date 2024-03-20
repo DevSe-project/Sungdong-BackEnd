@@ -86,17 +86,22 @@ const deliveryController = {
 
   // 필터링
   filter: async (req: Request, res: Response) => {
-    const checkboxState = req.body.checkboxState; // 사용하기 쉽게 변수에 담기
-    const filteredStateKeys = checkboxState.length > 0 ? Object.keys(checkboxState).filter(key => checkboxState[key] === true) : Object.keys(checkboxState).map(item => {return item}); // 값이 true인 키만 추출
+    // 사용하기 쉽게 변수에 담기 
+    const checkboxState = req.body.checkboxState;
+    // 값이 true인 키만 추출
+    const trueKeys = Object.entries(checkboxState)
+      .filter(([key, value]) => value === true)
+      .map(([key, value]) => key);
+
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 조회할 페이지 번호
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10; // 조회할 페이지의 아이템 개수
     const newFilter = {
-      orderState: filteredStateKeys || "",
+      orderState: trueKeys || "",
       startDate: req.body.date.start || "",
       endDate: req.body.date.end || ""
     }
 
-    console.log(newFilter);
+    console.log(`model 전달 전 최종 newFilter: ${newFilter}`);
 
     Delivery.filteredData(newFilter, currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받습니다.
@@ -104,7 +109,7 @@ const deliveryController = {
         return res.status(500).send({ message: err.message || "데이터를 갱신하는 중 서버 오류가 발생했습니다." });
       else {
         return res.status(200).json({ message: '필터링이 완료 되었습니다.', success: true, data });
-        
+
       }
     })
   }
