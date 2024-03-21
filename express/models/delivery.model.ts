@@ -178,11 +178,13 @@ class Delivery {
       WHERE 1=1
     `; // : always true condition
 
+    const stateCondition = newFilter.orderState && newFilter.orderState != '';
+    const dateCondition = newFilter.startDate && newFilter.startDate != '' && newFilter.endDate && newFilter.endDate != '';
     /** 배송 상태 필터링 쿼리 */
-    const stateFitlerQuery = newFilter.orderState ? `AND orderState IN (?)` : ``;
+    const stateFitlerQuery = stateCondition ? `AND orderState IN (?)` : ``;
 
     /** 날짜 필터링 쿼리 */
-    const dateFilterQuery = newFilter.startDate && newFilter.endDate ? `AND o.order_date BETWEEN DATE_FORMAT(?, "%Y-%m-%d") AND DATE_FORMAT(?, "%Y-%m-%d")` : ``;
+    const dateFilterQuery = dateCondition ? `AND o.order_date BETWEEN DATE_FORMAT(?, "%Y-%m-%d") AND DATE_FORMAT(?, "%Y-%m-%d")` : ``;
 
     /** ORDER BY: 정렬 */
     const orderBy = `ORDER BY o.order_date DESC, o.orderState DESC`;
@@ -191,14 +193,23 @@ class Delivery {
     const paging = `LIMIT ${offset}, ${limit}`;
 
     /** 완성 쿼리 */
-    const query = `${joinedQuery} ${stateFitlerQuery} ${dateFilterQuery} ${orderBy} ${paging}`
+    const query = `
+      ${joinedQuery} 
+      ${stateFitlerQuery} 
+      ${dateFilterQuery} 
+      ${orderBy} 
+      ${paging}
+    `
 
     /** 쿼리 파라미터 */
-    const queryParams = [
-      newFilter.orderState ? newFilter.orderState : null,
-      newFilter.startDate ? newFilter.startDate : null,
-      newFilter.endDate ? newFilter.endDate : null
-    ]
+    const queryParams: any = [];
+    if (stateCondition)
+      queryParams.push(newFilter.orderState);
+    if (dateCondition) {
+      queryParams.push(newFilter.startDate);
+      queryParams.push(newFilter.endDate);
+    }
+
     console.log(`쿼리 파라미터: ${queryParams}`);
 
     const mysql = require('mysql');
