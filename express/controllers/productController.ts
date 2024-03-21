@@ -1,5 +1,5 @@
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
-import express, { Request, Response } from "express"
+import { Request, Response } from "express"
 import Product from "../models/product.model";
 import multer, { Multer } from "multer";
 import path from "path";
@@ -235,7 +235,6 @@ const productController = {
     })
   },
   upload: async (req: Request, res: Response) => {
-    express.static('images');
     console.log('이미지 업로드 요청 받음');
     // 이미지 업로드를 위한 multer 설정
     const storage = multer.diskStorage({

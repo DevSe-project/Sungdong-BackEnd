@@ -27,6 +27,7 @@ authRouter.post("/filter", authController.userFilter); // 필터링
 authRouter.post("/sort", authController.userSort); // 정렬
 authRouter.post("/update", authController.userUpdate); // 업데이트(수정)
 authRouter.delete("/delete/:ids", authController.userDel); // 삭제
+authRouter.post("/upload", authController.upload);
 
 /*------------------ 코드 관련 --------------------*/
 authRouter.get("/codeAll", authController.getAllCode);

@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import User from "../models/auth.model";
 import { QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
 import shortid from "shortid";
-
+import multer, { Multer } from "multer";
+import path from "path";
 const jwtSecret = 'sung_dong';
 
 const authController = {
@@ -91,7 +92,9 @@ const authController = {
         cor_category: req.body.cor_category,
         cor_num: req.body.cor_num,
         cor_fax: req.body.cor_fax,
-        cor_tel: req.body.cor_tel
+        cor_tel: req.body.cor_tel,
+        cor_corCopy: req.body.cor_corCopy,
+        cor_bankCopy: req.body.cor_bankCopy
       },
       users4: {
         users_id: commonUserId,
@@ -509,6 +512,32 @@ const authController = {
     } catch {
       res.status(403).json({ success: false, message: "회원 인증이 만료되었습니다. 다시 로그인 해주세요!" });
     }
+  },
+
+ /* ------------------------------ 업로드 ------------------------------------------ */
+  upload: async (req: Request, res: Response) => {
+    console.log('이미지 업로드 요청 받음');
+    // 이미지 업로드를 위한 multer 설정
+    const storage = multer.diskStorage({
+      destination: 'images/auth', // 이미지를 저장할 폴더
+      filename: (req, file, cb) => {
+        // 파일명 중복을 피하기 위해 고유한 파일명 생성
+        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+      },
+    });
+
+    const upload: Multer = multer({ storage: storage });
+    upload.single('image')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ error: '이미지를 업로드하지 못했습니다.' });
+      }
+      if (req.file) {
+        const imageUrl = `http://localhost:5050/auth/${req.file.filename}`;
+        const fileName = req.file.filename;
+        console.log(imageUrl);
+        return res.json({ message: `성공적으로 업로드 되었습니다!`, imageUrl, fileName });
+      }
+    });
   }
 }
 
