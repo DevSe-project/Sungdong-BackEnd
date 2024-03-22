@@ -16,7 +16,7 @@ class Delivery {
         o.orderState,
         d.delivery_selectedCor,
         d.delivery_num, 
-        o.order_date, 
+        DATE_FORMAT(o.order_date, '%Y-%m-%d') as order_date, 
         op.product_id, 
         p.product_title,
         op.selectedOption, 
