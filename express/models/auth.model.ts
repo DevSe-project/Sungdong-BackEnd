@@ -347,15 +347,31 @@ class User {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
     const query = `
-        SELECT *
-        FROM users u
-        JOIN users_info ui ON u.users_id = ui.users_id
-        JOIN users_address ua ON ui.users_id = ua.users_id
-        JOIN users_corInfo uc ON ua.users_id = uc.users_id
-        LIMIT ?, ?
-      `
+      SELECT 
+        uc.cor_corName, u.userType_id,
+        (
+          SELECT ui.name
+          FROM managers AS m
+          WHERE m.managers_id = ui.managers_id
+        ) AS managerName,
+        ui.managers_id,
+        ui.hasCMS, ua.bname, 
+        ua.roadAddress, ua.zonecode, uc.cor_tel
+      FROM users u
+      JOIN users_info ui 
+        ON u.users_id = ui.users_id
+      JOIN users_address ua 
+        ON ui.users_id = ua.users_id
+      JOIN users_corInfo uc 
+        ON ua.users_id = uc.users_id
+      ORDER BY 
+        u.userType_id DESC, 
+        uc.cor_corName ASC
+      LIMIT ?, ?
+    `
     const countQuery = `
-        SELECT COUNT(*) as totalRows 
+        SELECT 
+          COUNT(*) as totalRows 
         FROM users u
         JOIN users_info ui ON u.users_id = ui.users_id
         JOIN users_address ua ON ui.users_id = ua.users_id
