@@ -546,6 +546,10 @@ class User {
         JOIN users_address ADDR ON USER.users_id = ADDR.users_id 
         ORDER BY ${orderByClause} `;
 
+    const mysql = require('mysql');
+    const fullQuery = mysql.format(query, orderByClause);
+    console.log(fullQuery);
+
     connection.query(query, (err: QueryError | Error | null, res: RowDataPacket[]) => {
       if (err) {
         console.error("에러 발생: ", err);
