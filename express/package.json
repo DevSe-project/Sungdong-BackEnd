@@ -32,6 +32,7 @@
     "nodemon": "^3.0.3",
     "promise": "^8.3.0",
     "shortid": "^2.2.16",
+    "soap": "^1.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
