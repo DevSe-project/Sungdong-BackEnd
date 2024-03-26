@@ -364,7 +364,7 @@ const authController = {
       cor_ceoName: requestData.cor_ceoName || '', // 대표명
       cor_num: requestData.cor_num || '', // 사업자등록번호
       userType_id: requestData.userType_id || -1, // 고객타입 및 등급
-      name: requestData.name || '', //담당자
+      managerName: requestData.managerName || '', //담당자
     }
 
     console.log(`[Step_1: 전송받은 데이터]\n${filter}`);

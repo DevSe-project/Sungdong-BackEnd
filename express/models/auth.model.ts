@@ -413,34 +413,48 @@ class User {
   static filteredUser(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
-    console.log(`전달 받은 값: ${newFilter.cor_ceoName}`);
     const joinedQuery = `
-      SELECT * FROM users USER 
-        JOIN users_info INFO 
-          ON USER.users_id = INFO.users_id 
-        JOIN users_corInfo COR 
-          ON USER.users_id = COR.users_id 
-        JOIN users_address ADDR 
-          ON USER.users_id = ADDR.users_id
-        WHERE 1 = 1
+    SELECT 
+      uc.cor_corName, u.userType_id,
+      (
+        SELECT ui.name
+        FROM managers AS m
+        WHERE m.managers_id = ui.managers_id
+      ) AS managerName,
+      ui.managers_id,
+      ui.hasCMS, ua.bname, 
+      ua.roadAddress, ua.zonecode, uc.cor_tel
+    FROM users u
+    JOIN users_info ui 
+      ON u.users_id = ui.users_id
+    JOIN users_address ua 
+      ON ui.users_id = ua.users_id
+    JOIN users_corInfo uc 
+      ON ua.users_id = uc.users_id
+    WHERE 1 = 1
     `;
-    const corNameConditonQuery = newFilter.cor_corName && newFilter.cor_corName != '' ? `AND COR.cor_corName LIKE ?` : '';
-    const ceoNameConditionQuery = newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? `AND COR.cor_ceoName LIKE ?` : '';
-    const corNumConditionQuery = newFilter.cor_num && newFilter.cor_num != '' ? `AND COR.cor_num LIKE ?` : '';
-    const userTypeConditionQuery = newFilter.userType_id && newFilter.userType_id != -1 ? `AND USER.userType_id LIKE ?` : '';
-    const userNameConditionQuery = newFilter.name && newFilter.name != '' ? `AND INFO.name LIKE ?` : ''
+    const corNameConditonQuery = newFilter.cor_corName && newFilter.cor_corName != '' ? `AND uc.cor_corName LIKE ?` : '';
+    const ceoNameConditionQuery = newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? `AND uc.cor_ceoName LIKE ?` : '';
+    const corNumConditionQuery = newFilter.cor_num && newFilter.cor_num != '' ? `AND uc.cor_num LIKE ?` : '';
+    const userTypeConditionQuery = newFilter.userType_id && newFilter.userType_id != -1 ? `AND u.userType_id = ?` : '';
+    const managerNameConditionQuery = newFilter.managerName && newFilter.managerName != '' ? `
+      AND (
+        SELECT ui.name
+        FROM managers AS m
+        WHERE m.managers_id = ui.managers_id
+      ) LIKE ?` : ''
     const countQuery = `
         SELECT COUNT(*) as totalRows 
-        FROM users USER 
-        JOIN users_info INFO 
-          ON USER.users_id = INFO.users_id 
-        JOIN users_corInfo COR 
-          ON USER.users_id = COR.users_id 
-        JOIN users_address ADDR 
-          ON USER.users_id = ADDR.users_id
+        FROM users u
+        JOIN users_info ui
+          ON ui.users_id = ui.users_id 
+        JOIN users_corInfo uc 
+          ON u.users_id = uc.users_id 
+        JOIN users_address ua 
+          ON u.users_id = ua.users_id
         WHERE 1 = 1
       `;
-    const limitedQuery = `LIMIT ${offset}, ${limit}`
+    const sortNlimitedQuery = `ORDER BY u.userType_id DESC, uc.cor_corName ASC LIMIT ${offset}, ${limit}`
 
     const query = `
       ${joinedQuery} 
@@ -448,8 +462,8 @@ class User {
       ${ceoNameConditionQuery} 
       ${corNumConditionQuery} 
       ${userTypeConditionQuery}
-      ${userNameConditionQuery}
-      ${limitedQuery}
+      ${managerNameConditionQuery}
+      ${sortNlimitedQuery}
       `;
 
     const countFullQuery = `
@@ -458,7 +472,7 @@ class User {
       ${ceoNameConditionQuery} 
       ${corNumConditionQuery} 
       ${userTypeConditionQuery}
-      ${userNameConditionQuery}
+      ${managerNameConditionQuery}
       `;
 
     const queryParams = [];
@@ -470,11 +484,11 @@ class User {
     if (newFilter.cor_num && newFilter.cor_num != '')
       queryParams.push(`%${newFilter.cor_num}%`);
     if (newFilter.userType_id && newFilter.userType_id != -1)
-      queryParams.push(`%${newFilter.userType_id}%`);
-    if (newFilter.name && newFilter.name != '')
-      queryParams.push(`%${newFilter.name}%`);
+      queryParams.push(newFilter.userType_id);
+    if (newFilter.managerName && newFilter.managerName != '')
+      queryParams.push(`%${newFilter.managerName}%`);
 
-    console.log(`[[Step_2: 전송받은 데이터]]\n${newFilter.name}`);
+    console.log(`[[Step_2: 전송받은 데이터]]\n${newFilter.managerName}`);
     const mysql = require('mysql');
     const fullQuery = mysql.format(query, queryParams);
     console.log(`[[Full Query]]\n${fullQuery}`); // 전체 쿼리 출력
