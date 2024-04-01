@@ -33,7 +33,8 @@
     "promise": "^8.3.0",
     "shortid": "^2.2.16",
     "soap": "^1.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.6",
