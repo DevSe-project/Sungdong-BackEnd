@@ -843,7 +843,6 @@ class Order {
       });
     })
   }
-
   static deleteByIds(ids: any, result: (error: any, response: any) => void) {
     const query = "DELETE FROM \`order\` WHERE order_id IN (?)"
     connection.query(query, ids, (err, res) => {

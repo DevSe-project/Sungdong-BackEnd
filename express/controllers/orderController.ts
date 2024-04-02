@@ -5,7 +5,9 @@ import jwt from 'jsonwebtoken'
 import User from "../models/auth.model";
 import shortid from "shortid";
 import Product from "../models/product.model";
-const jwtSecret = 'sung_dong'
+const jwtSecret = 'sung_dong';
+import ExcelJs from 'exceljs';
+import { Readable } from "stream";
 
 
 const postsPerPage = 5;
@@ -454,6 +456,42 @@ const orderController = {
     } catch(error){
       return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
     }
+  },
+
+  printExcel: async (req: Request, res: Response) => {
+    const workbook = new ExcelJs.Workbook();
+    const worksheet = workbook.addWorksheet('first');
+    worksheet.columns = [
+      { header: '주문번호', key:'order_id', width: 20},
+      { header: '배송방법', key: 'deliveryType', width: 20},
+      { header: '배송사', key: 'deliverySelect', width: 20},
+      { header: '주문상태', key: 'orderState', width: 20},
+      { header: '주문상품', key: 'product_title', width: 20},
+      { header: '주문일자', key: 'order_date', width: 20},
+      { header: '기업명', key: 'corName', width: 20},
+      { header: '주문자명', key: 'order_name', width: 20},
+      { header: '주문가', key: 'order_payAmount', width: 20},
+      { header: '주문자 전화번호', key: 'order_tel', width: 20},
+      { header: '주소', key: 'order_address', width: 20},
+      { header: '배송메세지', key: 'delivery_message', width: 20},
+      { header: '성동메세지', key: 'smtMessage', width: 20},
+      { header: '결제방법', key: 'order_payRoute', width: 20},
+      { header: '증빙서류발급', key: 'order_moneyReceipt', width: 20},
+    ];
+    worksheet.insertRows(2, req.body);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+  
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=test.xlsx`,
+    );
+  
+    await workbook.xlsx.write(res);
+    res.end();
   },
 
   delete: async (req: Request, res: Response) => {

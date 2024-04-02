@@ -27,6 +27,7 @@ orderRouter.post("/findSelectOrderProduct", orderController.selectOrderProductBy
 orderRouter.post("/write", orderController.write);
 orderRouter.get("/findOne", orderController.findOne);
 orderRouter.post("/create", orderController.create);
+orderRouter.post("/excel", orderController.printExcel);
 orderRouter.delete("/delete/:ids", orderController.delete);
 
 
