@@ -280,7 +280,7 @@ const productController = {
         const sheetData: any[] = [];
 
         // 모든 시트 이름을 순회하며 데이터 파싱
-        workbook.SheetNames.forEach((sheetName, index) => {
+        workbook.SheetNames.forEach((sheetName: any, index: any) => {
             const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
             sheetData.push(data);
         });
