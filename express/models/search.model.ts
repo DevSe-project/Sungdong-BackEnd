@@ -47,7 +47,7 @@ class Search {
       FROM product AS p 
       JOIN product_option AS po 
         ON p.product_id = po.product_id`;
-      const conditionColumns = ["REPLACE(p.product_id, '-', '')", "p.product_title", "p.product_brand", "p.product_spec", "p.product_model"];
+      const conditionColumns = ["REPLACE(p.product_id, '-', '')", "p.product_title", "p.product_brand", "REPLACE(p.product_spec, '*', '')", "REPLACE(p.product_model, '-', '')"];
       const conditionSingle = `WHERE (${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")})`;
       const conditionObject = `AND (${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")})`;
       const conditionFindParentsCategory = `AND p.parentsCategory_id = ?`
