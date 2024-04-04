@@ -348,18 +348,14 @@ class User {
     const limit = itemsPerPage;
     const query = `
       SELECT 
-        uc.cor_corName, u.userType_id,
-        (
-          SELECT ui.name
-          FROM managers AS m
-          WHERE m.managers_id = ui.managers_id
-        ) AS managerName,
-        ui.managers_id,
-        ui.hasCMS, ua.bname, 
-        ua.roadAddress, ua.zonecode, uc.cor_tel
+        *,
+        ui.name,
+        IFNULL(m.name, '미배정') as managerName
       FROM users u
       JOIN users_info ui 
         ON u.users_id = ui.users_id
+      LEFT OUTER JOIN managers m
+        ON ui.managers_id = m.managers_id
       JOIN users_address ua 
         ON ui.users_id = ua.users_id
       JOIN users_corInfo uc 
@@ -583,7 +579,7 @@ class User {
         result(err, null);
         return;
       }
-      // 연결에서 트랜잭션 시작
+      // ----------연결에서 트랜잭션 시작---------- //
       conn.beginTransaction((err) => {
         if (err) {
           console.log('트랜잭션 시작 중 에러 발생:', err);
@@ -591,28 +587,33 @@ class User {
           return;
         }
 
+        // ---------업데이트 시작--------- //
         if (Array.isArray(users)) {
           // 여러 사용자의 정보를 받아서 일괄 처리
           for (const user of users) {
-            updateSingleUser(conn, user);
+            updateSingleUser(conn, user, () => {});
           }
         } else {
           // 단일 사용자 정보를 받아서 업데이트
-          updateSingleUser(conn, users);
+          updateSingleUser(conn, users, () => {});
         }
+        // ---------업데이트 종료--------- //
 
-        // 모든 사용자 정보 업데이트가 성공하면 커밋
+        // ---------커밋 시작--------- //
         conn.commit((err) => {
           if (err) {
             conn.rollback(() => {
               console.log('트랜잭션 커밋 중 에러 발생: ', err);
+              result(err, null);
             });
             return;
           }
           console.log('트랜잭션 커밋 완료');
           result(null, 'Success');
         })
+        // ---------커밋 종료--------- //
       });
+      // ----------트랜잭션 종료---------- //
     });
 
     /** 단일 고객 정보 업데이트
@@ -620,79 +621,91 @@ class User {
      * @param conn 
      * @param user 
      */
-    function updateSingleUser(conn: any, user: any): void {
-      // 사용자 정보 업데이트 쿼리 실행
-      conn.query(
-        `
-        UPDATE 
-          users_address
-        SET 
-          zonecode = ?, roadAddress = ?, bname = ?, 
-          buildingName = ?, jibunAddress = ?, addressDetail = ?
-        WHERE 
-          address_id = ?
-        `,
-        [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id],
-        (error: any) => {
-          if (error) {
-            conn.rollback(() => {
-              console.log('쿼리 실행 중 에러 발생:', error);
-              result(error, null);
-            });
-            return;
-          }
-          // 사용자 정보 업데이트 쿼리 실행
-          conn.query(
-            `UPDATE users_info
-              SET email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?
-              WHERE users_info_id = ?`,
-            [user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, user.users_info_id],
-            (error: any) => {
-              if (error) {
-                conn.rollback(() => {
-                  console.log('쿼리 실행 중 에러 발생:', error);
-                  result(error, null);
-                });
-                return;
-              }
-              // 사용자 회사 정보 업데이트 쿼리 실행
-              conn.query(
-                `UPDATE users_corInfo
-                      SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ?
-                      WHERE users_id = ?`,
-                [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id],
-                (error: any) => {
-                  if (error) {
-                    conn.rollback(() => {
-                      console.log('쿼리 실행 중 에러 발생:', error);
-                      result(error, null);
-                    });
-                    return;
-                  }
-                  // 사용자 기본 정보 업데이트 쿼리 실행
-                  conn.query(
-                    `UPDATE users
-                              SET userType_id = ?, userId = ?, userPassword = ?
-                              WHERE users_id = ?`,
-                    [user.userType_id, user.userId, user.userPassword, user.users_id],
-                    (error: any) => {
-                      if (error) {
-                        conn.rollback(() => {
-                          console.log('쿼리 실행 중 에러 발생:', error);
-                          result(error, null);
-                        });
-                        return;
-                      }
-                    }
-                  );
-                }
-              );
-            }
-          );
+    function updateSingleUser(conn: any, user: any, callback: () => void): void {
+      const mysql = require('mysql');
+
+      // 고객 정보 업데이트 쿼리문
+      const queries = [
+        {
+          query: `UPDATE users_address SET zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ? WHERE address_id = ?`,
+          params: [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id],
+          errorMsg: '고객 주소 정보 업데이트'
+        },
+        {
+          query: `UPDATE users_info SET email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?, managers_id = ? WHERE users_info_id = ?`,
+          params: [user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, null, user.users_info_id], // managers_id는 나중에 채워질 것임
+          errorMsg: '고객 정보 업데이트'
+        },
+        {
+          query: `UPDATE users_corInfo SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ? WHERE users_id = ?`,
+          params: [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id],
+          errorMsg: '회사정보 업데이트'
+        },
+        {
+          query: `UPDATE users SET userType_id = ?, userId = ?, userPassword = ? WHERE users_id = ?`,
+          params: [user.userType_id, user.userId, user.userPassword, user.users_id],
+          errorMsg: '고객 메인 정보 업데이트'
         }
-      );
+      ];
+
+      // 담당자 고유번호 조회 쿼리
+      const findManagersId = `SELECT managers_id FROM managers WHERE name = ${mysql.escape(user.managerName)}`;
+
+      // 담당자 고유번호 조회
+      conn.query(findManagersId, (error: any, results: any) => {
+        if (error) {
+          conn.rollback(() => {
+            console.error('담당자 고유번호 조회 중 에러 발생:', error);
+            result(error, null);
+          });
+          return;
+        }
+
+        // 결과가 있을 경우 담당자 고유번호를 params에 추가
+        if (results && results.length > 0) {
+          const managersId = results[0].managers_id;
+          queries[1].params[7] = managersId; // users_info의 managers_id에 값 추가
+        } else {
+          // 결과가 없는 경우 params를 비움
+          queries[1].params[7] = null;
+        }
+
+        // 각 쿼리 실행
+        queries.forEach((queryObj, index) => {
+          conn.query(queryObj.query, queryObj.params, (error: any) => {
+            if (error) {
+              conn.rollback(() => {
+                console.error(`${queryObj.errorMsg} 중 에러 발생:`, error);
+                result(error, null);
+              });
+              return;
+            }
+
+            // // 마지막 쿼리까지 모두 성공적으로 실행되면 트랜잭션을 커밋
+            // if (index === queries.length - 1) {
+            //   conn.commit((commitError: any) => {
+            //     if (commitError) {
+            //       conn.rollback(() => {
+            //         console.error('트랜잭션 커밋 중 에러 발생:', commitError);
+            //         result(commitError, null);
+            //       });
+            //       return;
+            //     }
+            //     console.log('트랜잭션 커밋 완료');
+            //     result(null, 'success');
+            //   });
+            //   return;
+            // }
+            // 마지막 쿼리까지 모두 성공적으로 실행되면 콜백 호출
+            if(index === queries.length - 1) {
+              callback(); // 콜백함수 호출
+            }
+          });
+        });
+      });
     }
   }
+
 
   /** 고객 삭제(단일/일괄 삭제)
    * 
