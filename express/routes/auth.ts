@@ -22,7 +22,7 @@ authRouter.post("/mypage/password", authController.pwUpdate);
 authRouter.get("/welcomeInfo", authController.welcomeInfo);
 
 /*------------------ 회원 관리 --------------------*/
-authRouter.get("/read", authController.selectAll); // 조회
+authRouter.get("/read/:id", authController.readUser); // 조회
 authRouter.post("/filter", authController.userFilter); // 필터링
 authRouter.post("/sort", authController.userSort); // 정렬
 authRouter.post("/update", authController.userUpdate); // 업데이트(수정)

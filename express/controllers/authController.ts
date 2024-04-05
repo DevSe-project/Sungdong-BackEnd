@@ -327,11 +327,13 @@ const authController = {
    * @param req 
    * @param res 
    */
-  selectAll: async (req: Request, res: Response) => {
-    const currentPage = parseInt(req.query.page as string, 10) || 1;
-    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
+  readUser: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.params.page as string, 10) || 1;
+    const itemsPerPage = parseInt(req.params.pagePosts as string, 10) || 10;
 
-    User.selectAllToPageNumber(currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+    const readType = req.params.id;
+
+    User.readUser(readType, currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받습니다.
       if (err)
         return res.status(500).send({ message: err.message || "고객정보를 갱신하는 중 서버 오류가 발생했 습니다." });
@@ -339,6 +341,7 @@ const authController = {
         return res.status(200).json({ message: '성공적으로 고객정보 갱신이 완료 되었습니다.', success: true, data });
       }
     })
+
   },
 
   /**

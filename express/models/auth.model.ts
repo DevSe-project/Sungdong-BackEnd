@@ -343,28 +343,31 @@ class User {
    * @param itemsPerPage 
    * @param result 
    */
-  static selectAllToPageNumber(currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+  static readUser(readType: String, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
+
+    console.log(`요청 유형: ${readType}`);
     const query = `
-      SELECT 
-        *,
-        ui.name,
-        IFNULL(m.name, '미배정') as managerName
+      SELECT *, ui.name, m.name as managerName 
       FROM users u
       JOIN users_info ui 
         ON u.users_id = ui.users_id
-      LEFT OUTER JOIN managers m
+      LEFT OUTER JOIN managers m 
         ON ui.managers_id = m.managers_id
       JOIN users_address ua 
         ON ui.users_id = ua.users_id
       JOIN users_corInfo uc 
         ON ua.users_id = uc.users_id
-      ORDER BY 
-        u.userType_id DESC, 
-        uc.cor_corName ASC
-      LIMIT ?, ?
-    `
+      WHERE m.name ${readType === "pass" ? `IS NOT NULL` : `IS NULL`}
+      ORDER BY u.userType_id DESC, uc.cor_corName ASC
+      LIMIT ?, ?`
+    const params = [offset, limit]
+
+    const mysql = require('mysql');
+    const fullQuery = mysql.format(query, params);
+    console.log(fullQuery);
+
     const countQuery = `
         SELECT 
           COUNT(*) as totalRows 
@@ -379,7 +382,7 @@ class User {
         return;
       }
       const totalRows = countResult[0].totalRows
-      connection.query(query, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+      connection.query(fullQuery, (err: QueryError | null, res: RowDataPacket[]) => {
         if (err) {
           console.log("에러 발생: ", err);
           result(err, null);
@@ -591,11 +594,11 @@ class User {
         if (Array.isArray(users)) {
           // 여러 사용자의 정보를 받아서 일괄 처리
           for (const user of users) {
-            updateSingleUser(conn, user, () => {});
+            updateSingleUser(conn, user, () => { });
           }
         } else {
           // 단일 사용자 정보를 받아서 업데이트
-          updateSingleUser(conn, users, () => {});
+          updateSingleUser(conn, users, () => { });
         }
         // ---------업데이트 종료--------- //
 
@@ -697,7 +700,7 @@ class User {
             //   return;
             // }
             // 마지막 쿼리까지 모두 성공적으로 실행되면 콜백 호출
-            if(index === queries.length - 1) {
+            if (index === queries.length - 1) {
               callback(); // 콜백함수 호출
             }
           });
