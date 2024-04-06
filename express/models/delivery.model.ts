@@ -13,6 +13,7 @@ class Delivery {
     const query = `
       SELECT 
         d.order_id, 
+        uc.cor_corName,
         o.orderState,
         d.delivery_selectedCor,
         d.delivery_num, 
@@ -23,14 +24,15 @@ class Delivery {
         p.product_price, 
         op.order_cnt,
         ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
-      FROM 
-        delivery d
-      JOIN 
-        \`order\` o ON d.order_id = o.order_id
-      JOIN 
-        order_product op ON o.order_id = op.order_id
-      JOIN 
-        product p ON op.product_id = p.product_id
+      FROM delivery d
+      JOIN \`order\` o 
+        ON d.order_id = o.order_id
+      JOIN order_product op 
+        ON o.order_id = op.order_id
+      JOIN product p 
+       ON op.product_id = p.product_id
+      JOIN users_corInfo uc
+        ON uc.users_id = o.users_id
       WHERE o.orderState > 1 AND o.orderState < 5
       LIMIT ?, ?
       `;
