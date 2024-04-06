@@ -328,8 +328,8 @@ const authController = {
    * @param res 
    */
   readUser: async (req: Request, res: Response) => {
-    const currentPage = parseInt(req.params.page as string, 10) || 1;
-    const itemsPerPage = parseInt(req.params.pagePosts as string, 10) || 10;
+    const currentPage = parseInt(req.query.page as string, 10) || 1;
+    const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10;
 
     const readType = req.params.id;
 
