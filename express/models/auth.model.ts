@@ -359,7 +359,7 @@ class User {
         ON ui.users_id = ua.users_id
       JOIN users_corInfo uc 
         ON ua.users_id = uc.users_id
-      WHERE m.name ${readType === "pass" ? `IS NOT NULL` : `IS NULL`}
+      WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}
       ORDER BY u.userType_id DESC, uc.cor_corName ASC
       LIMIT ?, ?`
     const params = [offset, limit]
