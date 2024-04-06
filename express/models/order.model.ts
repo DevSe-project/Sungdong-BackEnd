@@ -165,6 +165,7 @@ class Order {
       });
     })
   }
+  // 반품교환 리스트 불러오기
   static raeList(user_id: string, currentPage: any, postsPerPage: number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
@@ -227,7 +228,7 @@ class Order {
     })
   }
 
-  //관리자의 모듈 개수 불러오기
+  //관리자페이지의 모듈 - 개수 불러오기
   static adminModule(
     result: (arg0: any, arg1: any) => void
   ) {
@@ -450,7 +451,7 @@ class Order {
         WHERE
         ${orderState === 1 ? '(o.orderState IN (0, 5, 6))' : '(o.orderState = 1)'} 
         ${orderState === 1 ? 'OR' : 'AND'} 
-        (o.isCancel = ${orderState === 1 ? '1' : '0'} OR o.isCancel IS NULL)
+        (o.isCancel = ${orderState === 1 ? '1' : "0 OR o.isCancel IS NULL"} )
         LIMIT ?, ?  
       `
       ];
@@ -520,7 +521,7 @@ class Order {
     })
   }
 
-  // 관리자 - 주문리스트 조회(전체) - 아이템까지 : JOIN(order | product | delivery)
+  // 관리자 - 주문리스트 아이템까지 조회(전체) - 엑셀 데이터 출력 : JOIN(order | product | delivery)
   static getOrderListItems(currentPage: number, itemsPerPage: number, orderState: any, isCancel: any, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
