@@ -31,7 +31,7 @@ class Delivery {
         order_product op ON o.order_id = op.order_id
       JOIN 
         product p ON op.product_id = p.product_id
-      WHERE o.orderState > 1
+      WHERE o.orderState > 1 AND o.orderState < 5
       LIMIT ?, ?
       `;
 
