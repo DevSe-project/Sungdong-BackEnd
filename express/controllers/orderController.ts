@@ -496,6 +496,45 @@ const orderController = {
     );
   },
 
+  // 모든 배송 데이터 조회 - 주문완료 건 + 상품포함
+  orderAllItems: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
+    const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
+    const orderState = req.body?.orderState ? req.body.orderState : null;
+    const isCancel = req.body?.isCancel ? req.body.isCancel : null;
+    console.log(isCancel);
+    console.log(orderState);
+    // 데이터베이스에서 불러오기
+    Order.getOrderListItems(
+      currentPage,
+      itemsPerPage,
+      orderState,
+      isCancel,
+      (
+        err: { message: any },
+        data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null
+      ) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res
+            .status(500)
+            .send({
+              message:
+                err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다.",
+            });
+        else {
+          return res
+            .status(200)
+            .json({
+              message: "성공적으로 상품 갱신이 완료 되었습니다.",
+              success: true,
+              data,
+            });
+        }
+      }
+    );
+  },
+
   // 송장수정 변경사항 적용
   applyEditedInvoice: async (req: Request, res: Response) => {
     try {
@@ -779,12 +818,14 @@ const orderController = {
       { header: "주문번호", key: "order_id", width: 20 },
       { header: "배송방법", key: "deliveryType", width: 20 },
       { header: "배송사", key: "deliverySelect", width: 20 },
-      { header: "주문상태", key: "orderState", width: 20 },
-      { header: "주문상품", key: "product_title", width: 20 },
+      { header: "상품명", key: "product_title", width: 20 },
+      { header: "상품코드", key: "product_id", width: 20 },
+      { header: "상품 모델명", key: "product_model", width: 20 },
+      { header: "상품 규격", key: "product_spec", width: 20 },
+      { header: "주문가", key: "order_payAmount", width: 20 },
       { header: "주문일자", key: "order_date", width: 20 },
       { header: "기업명", key: "corName", width: 20 },
       { header: "주문자명", key: "order_name", width: 20 },
-      { header: "주문가", key: "order_payAmount", width: 20 },
       { header: "주문자 전화번호", key: "order_tel", width: 20 },
       { header: "주소", key: "roadAddress", width: 20 },
       { header: "배송메세지", key: "delivery_message", width: 20 },
