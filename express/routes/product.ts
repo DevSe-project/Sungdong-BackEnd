@@ -4,6 +4,7 @@ import productController from "../controllers/productController"
 const productRouter: Router = express.Router()
 
 productRouter.get("/list", productController.list);
+productRouter.get("/admin/module", productController.adminModule);
 productRouter.post("/list", productController.list);
 productRouter.post("/relate", productController.relate);
 productRouter.post("/filter", productController.filter);

@@ -19,6 +19,22 @@ const deliveryController = {
     })
   },
 
+  adminModule: async (req: Request, res: Response) => {
+    try {
+      // 데이터베이스에서 불러오기
+      Delivery.adminModule((err: { message: any; }, data: any | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 주문 상품 갱신이 완료 되었습니다.', success: true, data });
+        }
+      })
+    } catch (error) {
+      return res.status(403).json({ message: '인증이 만료되어 재 로그인이 필요합니다.' });
+    }
+  },
+
 
 
   // 배송상태 변경사항 적용

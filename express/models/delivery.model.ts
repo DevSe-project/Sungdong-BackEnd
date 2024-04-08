@@ -30,7 +30,7 @@ class Delivery {
       JOIN order_product op 
         ON o.order_id = op.order_id
       JOIN product p 
-       ON op.product_id = p.product_id
+        ON op.product_id = p.product_id
       JOIN users_corInfo uc
         ON uc.users_id = o.users_id
       WHERE o.orderState > 1 AND o.orderState < 5
@@ -144,6 +144,34 @@ class Delivery {
       }
     });
   }
+
+  //관리자페이지의 모듈 - 개수 불러오기
+  static adminModule(
+    result: (arg0: any, arg1: any) => void
+  ) {
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 2) AS prepare,
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 3) AS shipping,
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 4) AS complete`;
+      this.connection.query(
+        query,
+        (err: QueryError | null, res: RowDataPacket[]) => {
+          if (err) {
+            console.log(err);
+            result(err, null);
+            this.connection.releaseConnection;
+            return;
+          } else {
+            console.log("상품이 갱신되었습니다: ", res);
+            result(null, res);
+            this.connection.releaseConnection;
+            return;
+          }
+        }
+      );
+    }
 
 
   /**

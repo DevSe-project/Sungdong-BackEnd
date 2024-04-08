@@ -234,6 +234,34 @@ class Product {
     });
 }
 
+  //관리자페이지의 모듈 - 개수 불러오기
+  static adminModule(
+    result: (arg0: any, arg1: any) => void
+  ) {
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM product WHERE product_state = '판매준비') AS prepare,
+      (SELECT COUNT(*) FROM product WHERE product_state = '판매중') AS selling,
+      (SELECT COUNT(*) FROM product WHERE product_state = '품절') AS soldout`;
+      connection.query(
+        query,
+        (err: QueryError | null, res: RowDataPacket[]) => {
+          if (err) {
+            console.log(err);
+            result(err, null);
+            connection.releaseConnection;
+            return;
+          } else {
+            console.log("상품이 갱신되었습니다: ", res);
+            result(null, res);
+            connection.releaseConnection;
+            return;
+          }
+        }
+      );
+    }
+
 
   static edit(newProduct: any, result: (error: any, response: any) => void) {
     performTransaction((connection: PoolConnection) => {

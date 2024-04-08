@@ -235,8 +235,8 @@ class Order {
     // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
     const query = `
     SELECT 
-      (SELECT COUNT(*) FROM \`order\` JOIN order_product ON order.order_id = order_product.order_id WHERE order.orderState = 0) AS noPay,
-      (SELECT COUNT(*) FROM \`order\` JOIN order_product ON order.order_id = order_product.order_id WHERE order.orderState = 1) AS pay,
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 0) AS noPay,
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 1) AS pay,
       (SELECT COUNT(*) FROM \`order\` JOIN delivery ON order.order_id = delivery.order_id WHERE delivery.delivery_date = ${new Date().toISOString().split('T')[0]}) AS todayDelivery`;
       connection.query(
         query,
