@@ -23,8 +23,8 @@ authRouter.get("/welcomeInfo", authController.welcomeInfo);
 
 /*------------------ 회원 관리 --------------------*/
 authRouter.get("/read/:id", authController.readUser); // 조회
-authRouter.post("/filter", authController.userFilter); // 필터링
-authRouter.post("/sort", authController.userSort); // 정렬
+authRouter.post("/filtering/:id", authController.userFilter); // 필터링
+authRouter.post("/sorting/:id", authController.userSort); // 정렬
 authRouter.post("/update", authController.userUpdate); // 업데이트(수정)
 authRouter.delete("/delete/:ids", authController.userDel); // 삭제
 authRouter.post("/upload", authController.upload);
