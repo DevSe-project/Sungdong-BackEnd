@@ -344,28 +344,38 @@ class User {
    * @param result 
    */
   static readUser(readType: String, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
-    const offset = (currentPage - 1) * itemsPerPage;
-    const limit = itemsPerPage;
 
     console.log(`요청 유형: ${readType}`);
-    const query = `
-      SELECT *, ui.name, m.name as managerName 
-      FROM users u
-      JOIN users_info ui 
-        ON u.users_id = ui.users_id
-      LEFT OUTER JOIN managers m 
-        ON ui.managers_id = m.managers_id
-      JOIN users_address ua 
-        ON ui.users_id = ua.users_id
-      JOIN users_corInfo uc 
-        ON ua.users_id = uc.users_id
-      WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}
-      ORDER BY u.userType_id DESC, uc.cor_corName ASC
-      LIMIT ?, ?`
+
+    const select = `SELECT *, ui.name, m.name as managerName `
+    const joinTable = `FROM users u
+                      JOIN users_info ui 
+                        ON u.users_id = ui.users_id
+                      LEFT OUTER JOIN managers m 
+                        ON ui.managers_id = m.managers_id
+                      JOIN users_address ua 
+                        ON ui.users_id = ua.users_id
+                      JOIN users_corInfo uc 
+                        ON ua.users_id = uc.users_id`
+    const fixedCondition = `WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}`;
+    const orderByQuery = `ORDER BY u.userType_id DESC, uc.cor_corName ASC`;
+    const limitQuery = `LIMIT ?, ?`;
+
+    // 쿼리모듈 결합
+    const combinedQuery = `
+    ${select}
+    ${joinTable}
+    ${fixedCondition}
+    ${orderByQuery}
+    ${limitQuery}
+    `
+    // 파리미터 결합
+    const offset = (currentPage - 1) * itemsPerPage;
+    const limit = itemsPerPage;
     const params = [offset, limit]
 
     const mysql = require('mysql');
-    const fullQuery = mysql.format(query, params);
+    const fullQuery = mysql.format(combinedQuery, params);
     console.log(fullQuery);
 
     const countQuery = `
@@ -409,97 +419,86 @@ class User {
    * @param itemsPerPage 
    * @param result 
    */
-  static filteredUser(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+  static filteredUser(readType: string, newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
-    const joinedQuery = `
-    SELECT 
-      uc.cor_corName, u.userType_id,
-      (
-        SELECT ui.name
-        FROM managers AS m
-        WHERE m.managers_id = ui.managers_id
-      ) AS managerName,
-      ui.managers_id,
-      ui.hasCMS, ua.bname, 
-      ua.roadAddress, ua.zonecode, uc.cor_tel
-    FROM users u
-    JOIN users_info ui 
-      ON u.users_id = ui.users_id
-    JOIN users_address ua 
-      ON ui.users_id = ua.users_id
-    JOIN users_corInfo uc 
-      ON ua.users_id = uc.users_id
-    WHERE 1 = 1
+    /**
+    * * SQL 쿼리의 WHERE 절에 사용할 조건을 생성
+    * * 조건과 값에 기반하여 조건 문자열을 생성
+    * * 값이 참인 경우 'AND'로 시작하는 조건 문자열을 반환
+    * * 그렇지 않으면 빈 문자열을 반환
+    * @param condition WHERE 절에 사용될 조건 문자열
+    * @param value 값의 참/거짓 여부를 확인하기 위한 값
+    * @returns WHERE 절 조건을 나타내는 문자열
+    */
+    const generateWhereCondition = (condition: string, value: any) => {
+      return value ? `AND ${condition} LIKE '%${value}%'` : '';
+    };
+    /**
+     * SQL 쿼리에서 사용할 매개변수를 생성
+     * 값에 기반하여 매개변수 문자열을 생성
+     * 값이 참인 경우 LIKE 절에서 패턴 매칭을 위해 '%'로 감싼 값을 반환
+     * 그렇지 않으면 null을 반환
+     * @param value 매개변수로 사용될 값
+     * @returns SQL 쿼리에서 사용될 매개변수를 나타내는 문자열
+     */
+    const generateQueryParam = (value: any) => {
+      return value ? `%${value}%` : null;
+    };
+
+
+    const selectQuery = `
+      SELECT *, ui.name, m.name AS managerName
+      FROM users u
+      JOIN users_info ui ON u.users_id = ui.users_id
+      LEFT OUTER JOIN managers m ON ui.managers_id = m.managers_id
+      JOIN users_address ua ON ui.users_id = ua.users_id
+      JOIN users_corInfo uc ON ua.users_id = uc.users_id
+      WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}
+      ${generateWhereCondition('uc.cor_corName', newFilter.cor_corName)}
+      ${generateWhereCondition('uc.cor_ceoName', newFilter.cor_ceoName)}
+      ${generateWhereCondition('uc.cor_num', newFilter.cor_num)}
+      ${generateWhereCondition('u.userType_id', newFilter.userType_id !== -1)}
+      ${generateWhereCondition('(SELECT ui.name FROM managers AS m WHERE m.managers_id = ui.managers_id)', newFilter.managerName)}
+      ORDER BY u.userType_id DESC, uc.cor_corName ASC
+      LIMIT ${offset}, ${limit}
     `;
-    const corNameConditonQuery = newFilter.cor_corName && newFilter.cor_corName != '' ? `AND uc.cor_corName LIKE ?` : '';
-    const ceoNameConditionQuery = newFilter.cor_ceoName && newFilter.cor_ceoName != '' ? `AND uc.cor_ceoName LIKE ?` : '';
-    const corNumConditionQuery = newFilter.cor_num && newFilter.cor_num != '' ? `AND uc.cor_num LIKE ?` : '';
-    const userTypeConditionQuery = newFilter.userType_id && newFilter.userType_id != -1 ? `AND u.userType_id = ?` : '';
-    const managerNameConditionQuery = newFilter.managerName && newFilter.managerName != '' ? `
-      AND (
-        SELECT ui.name
-        FROM managers AS m
-        WHERE m.managers_id = ui.managers_id
-      ) LIKE ?` : ''
+
     const countQuery = `
-        SELECT COUNT(*) as totalRows 
-        FROM users u
-        JOIN users_info ui
-          ON ui.users_id = ui.users_id 
-        JOIN users_corInfo uc 
-          ON u.users_id = uc.users_id 
-        JOIN users_address ua 
-          ON u.users_id = ua.users_id
-        WHERE 1 = 1
-      `;
-    const sortNlimitedQuery = `ORDER BY u.userType_id DESC, uc.cor_corName ASC LIMIT ${offset}, ${limit}`
+      SELECT COUNT(*) AS totalRows
+      FROM users u
+      JOIN users_info ui ON u.users_id = ui.users_id
+      LEFT OUTER JOIN managers m ON ui.managers_id = m.managers_id
+      JOIN users_address ua ON ui.users_id = ua.users_id
+      JOIN users_corInfo uc ON ua.users_id = uc.users_id
+      WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}
+      ${generateWhereCondition('uc.cor_corName', newFilter.cor_corName)}
+      ${generateWhereCondition('uc.cor_ceoName', newFilter.cor_ceoName)}
+      ${generateWhereCondition('uc.cor_num', newFilter.cor_num)}
+      ${generateWhereCondition('u.userType_id', newFilter.userType_id !== -1)}
+      ${generateWhereCondition('(SELECT ui.name FROM managers AS m WHERE m.managers_id = ui.managers_id)', newFilter.managerName)}
+    `;
 
-    const query = `
-      ${joinedQuery} 
-      ${corNameConditonQuery} 
-      ${ceoNameConditionQuery} 
-      ${corNumConditionQuery} 
-      ${userTypeConditionQuery}
-      ${managerNameConditionQuery}
-      ${sortNlimitedQuery}
-      `;
-
-    const countFullQuery = `
-      ${countQuery} 
-      ${corNameConditonQuery} 
-      ${ceoNameConditionQuery} 
-      ${corNumConditionQuery} 
-      ${userTypeConditionQuery}
-      ${managerNameConditionQuery}
-      `;
-
-    const queryParams = [];
-
-    if (newFilter.cor_corName && newFilter.cor_corName != '')
-      queryParams.push(`%${newFilter.cor_corName}%`);
-    if (newFilter.cor_ceoName && newFilter.cor_ceoName != '')
-      queryParams.push(`%${newFilter.cor_ceoName}%`);
-    if (newFilter.cor_num && newFilter.cor_num != '')
-      queryParams.push(`%${newFilter.cor_num}%`);
-    if (newFilter.userType_id && newFilter.userType_id != -1)
-      queryParams.push(newFilter.userType_id);
-    if (newFilter.managerName && newFilter.managerName != '')
-      queryParams.push(`%${newFilter.managerName}%`);
+    const queryParams = [
+      generateQueryParam(newFilter.cor_corName),
+      generateQueryParam(newFilter.cor_ceoName),
+      generateQueryParam(newFilter.cor_num),
+      newFilter.userType_id !== -1 ? newFilter.userType_id : null,
+      generateQueryParam(newFilter.managerName)
+    ];
 
     console.log(`[[Step_2: 전송받은 데이터]]\n${newFilter.managerName}`);
     const mysql = require('mysql');
-    const fullQuery = mysql.format(query, queryParams);
-    console.log(`[[Full Query]]\n${fullQuery}`); // 전체 쿼리 출력
+    const queryDebuggig = mysql.format(selectQuery, queryParams);
+    console.log(`[[Full Query]]\n${queryDebuggig}`); // 전체 쿼리 출력
 
-
-    connection.query(countFullQuery, queryParams, (err, countResult: any) => {
+    connection.query(countQuery, queryParams, (err, countResult: any) => {
       if (err) {
         result(err, null);
         return;
       }
-      const totalRows = countResult[0].totalRows
-      connection.query(fullQuery, [offset, limit], (err: QueryError | null, res: RowDataPacket[]) => {
+      const totalRows = countResult[0].totalRows;
+      connection.query(selectQuery, (err: QueryError | null, res: RowDataPacket[]) => {
         if (err) {
           console.log("에러 발생: ", err);
           result(err, null);
@@ -519,15 +518,34 @@ class User {
     });
   }
 
+
   /** 유저 정렬
    * 
    * @param user 
    * @param result 
    * @returns 
    */
-  static sortedUser(user: any, result: (error: QueryError | Error | null, data: RowDataPacket[] | null) => void) {
+  static sortedUser(readType: String, sort: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
+    const offset = (currentPage - 1) * itemsPerPage;
+    const limit = itemsPerPage;
+    
+    /**
+     * Debugging Code
+     * 필터링할 요소들을 확인합니다.
+     */
+    console.log(`필터링할 요소 ${sort}`);
+
     // 사용자 입력 값으로부터 컬럼 및 정렬 방식을 동적으로 생성
-    const orderByColumns = [user.first, user.second, user.third].filter(Boolean); // 비어있는 값 제거
+    const orderByColumns = [sort.first, sort.second, sort.third].filter(Boolean); // 비어있는 값 제거
+    /**
+     * filter(Boolean) : 각 요소를 Boolean 타입으로 변환하고, true로 평가되는 요소들만 필터링
+     */
+
+    /**
+     * true인 값들만 필터링된 배열이 비었다면, 전달받은 sort 요소가 없다는 것이므로,
+     * 정렬할 컬럼이 지정되지 않았다는 에러 메세지를 반환하고,
+     * 연결을 끊습니다.
+     */
     if (orderByColumns.length === 0) {
       // 정렬할 컬럼이 없으면 에러 처리
       const noOrderByError = new Error("정렬할 컬럼이 지정되지 않았습니다.");
@@ -538,34 +556,68 @@ class User {
     }
 
     const orderByClause = orderByColumns.map(column => `${column} ASC`).join(', ');
-    // SQL 쿼리 생성
-    const query = `SELECT * FROM users USER 
-        JOIN users_info INFO ON USER.users_id = INFO.users_id 
-        JOIN users_corInfo COR ON USER.users_id = COR.users_id 
-        JOIN users_address ADDR ON USER.users_id = ADDR.users_id 
-        ORDER BY ${orderByClause} `;
 
+    const selectQuery = `
+      SELECT *, ui.name, m.name AS managerName
+      FROM users u
+      JOIN users_info ui ON u.users_id = ui.users_id
+      LEFT OUTER JOIN managers m ON ui.managers_id = m.managers_id
+      JOIN users_address ua ON ui.users_id = ua.users_id
+      JOIN users_corInfo uc ON ua.users_id = uc.users_id
+      WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}
+      ORDER BY ${orderByClause}
+      LIMIT ${offset}, ${limit}
+    `
+
+    const countQuery = `
+      SELECT COUNT(*) AS totalRows
+      FROM users u
+      JOIN users_info ui ON u.users_id = ui.users_id
+      LEFT OUTER JOIN managers m ON ui.managers_id = m.managers_id
+      JOIN users_address ua ON ui.users_id = ua.users_id
+      JOIN users_corInfo uc ON ua.users_id = uc.users_id
+      WHERE m.name ${readType === "done" ? `IS NOT NULL` : `IS NULL`}
+    `
+
+    console.log(`[전송받은 데이터]\n ${sort}`);
     const mysql = require('mysql');
-    const fullQuery = mysql.format(query, orderByClause);
+    const fullQuery = mysql.format(selectQuery, orderByClause);
     console.log(fullQuery);
 
-    connection.query(query, (err: QueryError | Error | null, res: RowDataPacket[]) => {
+    connection.query(countQuery, (err, countResult: any) => {
       if (err) {
-        console.error("에러 발생: ", err);
         result(err, null);
-        connection.releaseConnection;
         return;
       }
-      if (res.length === 0) {
-        const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
-        console.error(noMatchingUserError.message);
-        result(noMatchingUserError, null);
-        connection.releaseConnection;
-        return;
-      }
-      console.log("정렬 된 유저: ", res);
-      result(null, res);
-      connection.releaseConnection;
+      const totalRows = countResult[0].totalRows;
+      connection.query(selectQuery, (err: QueryError | Error | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.error("에러 발생: ", err);
+          result(err, null);
+          connection.releaseConnection;
+          return;
+        } else {
+
+          if (res.length === 0) {
+            const noMatchingUserError = new Error("조건에 일치하는 유저가 없습니다.");
+            console.error(noMatchingUserError.message);
+            result(noMatchingUserError, null);
+            connection.releaseConnection;
+            return;
+          }
+
+          const totalPages = Math.ceil(totalRows / itemsPerPage);
+          const responseData = {
+            data: res,
+            currentPage: currentPage,
+            totalPages: totalPages,
+          }
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          console.log("고객정보가 갱신되었습니다: ", responseData);
+          result(null, responseData);
+          connection.releaseConnection
+        }
+      });
     });
   }
 
