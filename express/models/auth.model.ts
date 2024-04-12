@@ -347,7 +347,7 @@ class User {
 
     console.log(`요청 유형: ${readType}`);
 
-    const select = `SELECT *, ui.name, m.name as managerName `
+    const select = `SELECT *, ui.name, IFNULL(m.name,"미배정") as managerName `
     const joinTable = `FROM users u
                       JOIN users_info ui 
                         ON u.users_id = ui.users_id
@@ -448,7 +448,7 @@ class User {
 
 
     const selectQuery = `
-      SELECT *, ui.name, m.name AS managerName
+      SELECT *, ui.name, IFNULL(m.name,"미배정") as managerName
       FROM users u
       JOIN users_info ui ON u.users_id = ui.users_id
       LEFT OUTER JOIN managers m ON ui.managers_id = m.managers_id
@@ -528,7 +528,7 @@ class User {
   static sortedUser(readType: String, sort: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
     const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
-    
+
     /**
      * Debugging Code
      * 필터링할 요소들을 확인합니다.
@@ -558,7 +558,7 @@ class User {
     const orderByClause = orderByColumns.map(column => `${column} ASC`).join(', ');
 
     const selectQuery = `
-      SELECT *, ui.name, m.name AS managerName
+      SELECT *, ui.name, IFNULL(m.name,"미배정") as managerName
       FROM users u
       JOIN users_info ui ON u.users_id = ui.users_id
       LEFT OUTER JOIN managers m ON ui.managers_id = m.managers_id
