@@ -117,7 +117,8 @@ class Delivery {
 
   static cancellationByIds(orderIds: string[], result: (error: any, response: any) => void) {
     const deliveryQuery = "DELETE FROM delivery WHERE order_id IN (?)";
-    const orderQuery = "DELETE FROM \`order\` WHERE order_id IN (?)";
+    const orderQuery = `UPDATE \`order\` SET orderState = 6
+                          WHERE order_id IN (?)`;
 
     console.log("Delivery Query:", deliveryQuery);
     console.log("Order Query:", orderQuery);
@@ -136,7 +137,7 @@ class Delivery {
             result(errOrder, null);
             this.connection.releaseConnection;
           } else {
-            console.log('order 테이블에서 성공적으로 삭제 완료:', resOrder);
+            console.log('order 테이블에서 취소상태로 업데이트 완료:', resOrder);
             result(null, { delivery: resDelivery, order: resOrder });
             this.connection.releaseConnection;
           }
