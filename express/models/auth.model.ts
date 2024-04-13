@@ -716,12 +716,11 @@ class User {
           return;
         }
 
-        // 결과가 있을 경우 담당자 고유번호를 params에 추가
+        // 담당자 고유번호를 해당 params에 추가/삭제
         if (results && results.length > 0) {
           const managersId = results[0].managers_id;
-          queries[1].params[7] = managersId; // users_info의 managers_id에 값 추가
+          queries[1].params[7] = managersId;
         } else {
-          // 결과가 없는 경우 params를 비움
           queries[1].params[7] = null;
         }
 
@@ -735,32 +734,47 @@ class User {
               });
               return;
             }
-
-            // // 마지막 쿼리까지 모두 성공적으로 실행되면 트랜잭션을 커밋
-            // if (index === queries.length - 1) {
-            //   conn.commit((commitError: any) => {
-            //     if (commitError) {
-            //       conn.rollback(() => {
-            //         console.error('트랜잭션 커밋 중 에러 발생:', commitError);
-            //         result(commitError, null);
-            //       });
-            //       return;
-            //     }
-            //     console.log('트랜잭션 커밋 완료');
-            //     result(null, 'success');
-            //   });
-            //   return;
-            // }
-            // 마지막 쿼리까지 모두 성공적으로 실행되면 콜백 호출
-            if (index === queries.length - 1) {
-              callback(); // 콜백함수 호출
+            
+            // 사용자의 userType_id가 100이라면 insertManager 함수 호출
+            if (user.userType_id === 100) {
+              insertManager(conn, user, () => { });
+              // 마지막 쿼리까지 모두 성공적으로 실행되면 콜백 호출
+              if (index === queries.length - 1) {
+                callback(); // 콜백함수 호출
+              }
             }
           });
         });
+
+      });
+    }
+
+    /**
+     * 
+     * @param conn 
+     * @param user 
+     * @param callback 
+     */
+    function insertManager(conn: any, user: any, callback: () => void): void {
+      // 새로운 매니저 정보를 삽입할 때 사용할 데이터
+      const { userType_id, users_id, name } = user;
+
+      const query = `INSERT INTO managers (userType_id, users_id, name) VALUES (?, ?, ?)`
+
+      // 데이터베이스 연결을 통해 쿼리 실행
+      conn.query(query, [userType_id, users_id, name], (err: any, result: any) => {
+        if (err) {
+          // 에러 처리
+          console.error("Error inserting manager:", err);
+          // 에러 발생 시 콜백 호출
+          callback();
+        } else {
+          // 쿼리 성공 시 콜백 호출
+          callback();
+        }
       });
     }
   }
-
 
   /** 고객 삭제(단일/일괄 삭제)
    * 
