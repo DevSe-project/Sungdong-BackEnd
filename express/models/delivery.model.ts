@@ -115,7 +115,7 @@ class Delivery {
     }
   }
 
-  static deleteByIds(orderIds: string[], result: (error: any, response: any) => void) {
+  static cancellationByIds(orderIds: string[], result: (error: any, response: any) => void) {
     const deliveryQuery = "DELETE FROM delivery WHERE order_id IN (?)";
     const orderQuery = "DELETE FROM \`order\` WHERE order_id IN (?)";
 

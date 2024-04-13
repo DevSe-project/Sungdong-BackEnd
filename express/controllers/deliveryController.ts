@@ -88,9 +88,9 @@ const deliveryController = {
   },
 
   // 삭제 작업
-  delete: async (req: Request, res: Response) => {
+  cancellation: async (req: Request, res: Response) => {
     const orderIds = req.params.ids.split(',').map(String);
-    Delivery.deleteByIds(orderIds, (err: { message: any; }) => {
+    Delivery.cancellationByIds(orderIds, (err: { message: any; }) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "데이터를 갱신하는 중 서버 오류가 발생했습니다." });
