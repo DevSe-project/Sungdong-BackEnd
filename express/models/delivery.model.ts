@@ -116,34 +116,47 @@ class Delivery {
   }
 
   static cancellationByIds(orderIds: string[], result: (error: any, response: any) => void) {
-    const deliveryQuery = "DELETE FROM delivery WHERE order_id IN (?)";
+    // const deliveryQuery = `UPDATE delivery SET orderState = 6
+    //                       WHERE order_id IN (?)`;
     const orderQuery = `UPDATE \`order\` SET orderState = 6
                           WHERE order_id IN (?)`;
 
-    console.log("Delivery Query:", deliveryQuery);
+    // console.log("Delivery Query:", deliveryQuery);
     console.log("Order Query:", orderQuery);
     console.log("Order IDs:", orderIds);
 
-    this.connection.query(deliveryQuery, [orderIds], (errDelivery, resDelivery) => {
-      if (errDelivery) {
-        console.log(`쿼리 실행 중 에러 발생 (delivery 테이블):`, errDelivery);
-        result(errDelivery, null);
+    this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
+      if (errOrder) {
+        console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
+        result(errOrder, null);
         this.connection.releaseConnection;
       } else {
-        console.log('delivery 테이블에서 성공적으로 삭제 완료:', resDelivery);
-        this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
-          if (errOrder) {
-            console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
-            result(errOrder, null);
-            this.connection.releaseConnection;
-          } else {
-            console.log('order 테이블에서 취소상태로 업데이트 완료:', resOrder);
-            result(null, { delivery: resDelivery, order: resOrder });
-            this.connection.releaseConnection;
-          }
-        });
+        console.log('order 테이블에서 취소상태로 업데이트 완료:', resOrder);
+        result(null, { order: resOrder });
+        this.connection.releaseConnection;
       }
     });
+
+    // this.connection.query(deliveryQuery, [orderIds], (errDelivery, resDelivery) => {
+    //   if (errDelivery) {
+    //     console.log(`쿼리 실행 중 에러 발생 (delivery 테이블):`, errDelivery);
+    //     result(errDelivery, null);
+    //     this.connection.releaseConnection;
+    //   } else {
+    //     console.log('delivery 테이블에서 성공적으로 삭제 완료:', resDelivery);
+    //     this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
+    //       if (errOrder) {
+    //         console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
+    //         result(errOrder, null);
+    //         this.connection.releaseConnection;
+    //       } else {
+    //         console.log('order 테이블에서 취소상태로 업데이트 완료:', resOrder);
+    //         result(null, { delivery: resDelivery, order: resOrder });
+    //         this.connection.releaseConnection;
+    //       }
+    //     });
+    //   }
+    // });
   }
 
   //관리자페이지의 모듈 - 개수 불러오기
@@ -156,23 +169,23 @@ class Delivery {
       (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 2) AS prepare,
       (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 3) AS shipping,
       (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 4) AS complete`;
-      this.connection.query(
-        query,
-        (err: QueryError | null, res: RowDataPacket[]) => {
-          if (err) {
-            console.log(err);
-            result(err, null);
-            this.connection.releaseConnection;
-            return;
-          } else {
-            console.log("상품이 갱신되었습니다: ", res);
-            result(null, res);
-            this.connection.releaseConnection;
-            return;
-          }
+    this.connection.query(
+      query,
+      (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log(err);
+          result(err, null);
+          this.connection.releaseConnection;
+          return;
+        } else {
+          console.log("상품이 갱신되었습니다: ", res);
+          result(null, res);
+          this.connection.releaseConnection;
+          return;
         }
-      );
-    }
+      }
+    );
+  }
 
 
   /**
