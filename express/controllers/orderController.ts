@@ -457,20 +457,14 @@ const orderController = {
     }
   },
 
-  // 모든 배송 데이터 조회 - 주문완료 건
+  // 모든 배송 데이터 조회 - 미결제 / 주문완료 건
   orderAll: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
     const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
-    const orderState = req.body?.orderState ? req.body.orderState : null;
-    const isCancel = req.body?.isCancel ? req.body.isCancel : null;
-    console.log(isCancel);
-    console.log(orderState);
     // 데이터베이스에서 불러오기
     Order.getOrderList(
       currentPage,
       itemsPerPage,
-      orderState,
-      isCancel,
       (
         err: { message: any },
         data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null
@@ -496,20 +490,47 @@ const orderController = {
     );
   },
 
-  // 모든 배송 데이터 조회 - 주문완료 건 + 상품포함
+  // 모든 배송 데이터 조회 - 엑셀 출력용
   orderAllItems: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
     const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
-    const orderState = req.body?.orderState ? req.body.orderState : null;
-    const isCancel = req.body?.isCancel ? req.body.isCancel : null;
-    console.log(isCancel);
-    console.log(orderState);
     // 데이터베이스에서 불러오기
     Order.getOrderListItems(
       currentPage,
       itemsPerPage,
-      orderState,
-      isCancel,
+      (
+        err: { message: any },
+        data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null
+      ) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res
+            .status(500)
+            .send({
+              message:
+                err.message || "상품을 갱신하는 중 서버 오류가 발생했 습니다.",
+            });
+        else {
+          return res
+            .status(200)
+            .json({
+              message: "성공적으로 상품 갱신이 완료 되었습니다.",
+              success: true,
+              data,
+            });
+        }
+      }
+    );
+  },
+
+  // 모든 배송 데이터 조회 - 미결제 / 주문완료 건
+  cancelOrderAll: async (req: Request, res: Response) => {
+    const currentPage = parseInt(req.query.page as string, 10) || 1; // 페이지 번호 쿼리 파라미터를 읽어옴
+    const itemsPerPage = parseInt(req.query.post as string, 10) || 10; // 페이지 당 아이템 개수 쿼리 파라미터를 읽어옴
+    // 데이터베이스에서 불러오기
+    Order.getCanceledOrderList(
+      currentPage,
+      itemsPerPage,
       (
         err: { message: any },
         data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null

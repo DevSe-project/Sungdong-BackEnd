@@ -9,6 +9,8 @@ orderRouter.get("/rae/list", orderController.raeList);
 orderRouter.post("/list", orderController.list);
 orderRouter.post("/all", orderController.orderAll);
 orderRouter.post("/all/items", orderController.orderAllItems);
+orderRouter.get("/all/cancel", orderController.cancelOrderAll);
+orderRouter.post("/all/cancel", orderController.cancelOrderAll);
 orderRouter.post("/rae/list", orderController.raeList);
 orderRouter.put(`/invoice`, orderController.applyEditedInvoice);
 orderRouter.put(`/cancel`, orderController.cancelOrder);
