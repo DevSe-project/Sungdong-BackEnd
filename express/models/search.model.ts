@@ -122,7 +122,7 @@ class Search {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
 
-    const whereClause = newFilter.searchFilter && newFilter.search ? `WHERE ${newFilter.searchFilter} LIKE ?` : '';
+    const whereClause = newFilter.searchFilter && newFilter.search ? `WHERE ${newFilter.searchFilter === "p.product_id" ? `REPLACE(p.product_id, '-', '')` : newFilter.searchFilter} LIKE ?` : '';
 
     const baseQuery = `
     SELECT 
@@ -149,6 +149,8 @@ class Search {
           order_product AS op ON o.order_id = op.order_id 
         JOIN 
           product AS p ON op.product_id = p.product_id
+        JOIN 
+          delivery AS d ON d.order_id = o.order_id
         JOIN 
           users_corInfo AS uc ON uc.users_id = o.users_id
         ${whereClause} -- 서브쿼리 내부에서 조건 적용.  
@@ -178,7 +180,9 @@ class Search {
         JOIN 
           product AS p ON op.product_id = p.product_id
         JOIN 
-          users_corInfo AS uc ON uc.users_id = o.users_id
+          users_corInfo AS uc ON uc.users_id = o.users_id        
+        JOIN 
+          delivery AS d ON d.order_id = o.order_id
         ${whereClause} -- 서브쿼리 내부에서 조건 적용.  
         GROUP BY 
           o.order_id
