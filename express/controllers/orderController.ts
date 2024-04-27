@@ -637,13 +637,52 @@ const orderController = {
     }
   },
 
+  // 결제완료 상태 변경
+  paidOrder: async (req: Request, res: Response) => {
+    try {
+      // 요청에서 변경된 배송 상태 데이터 추출
+      const fetchedData = req.body;
+
+      // 유효성 검사: 변경된 배송 상태 데이터가 유효한지 확인
+      if (!Array.isArray(fetchedData)) {
+        return res.status(400).json({ message: "잘못된 데이터 형식입니다." });
+      }
+
+      // 데이터 처리: 변경된 배송 상태 데이터를 데이터베이스에 업데이트
+      await Promise.all(
+        fetchedData?.map(
+          async (item: {
+            value: any;
+            cancelReason: string;
+            order_id: string;
+          }) => {
+            await Order.paidOrder(
+              item.value.order_id
+            );
+          }
+        )
+      );
+
+      // 응답 전송: 업데이트 성공
+      return res
+        .status(200)
+        .json({ message: "주문 상태가 성공적으로 업데이트되었습니다." });
+    } catch (error) {
+      // 응답 전송: 업데이트 실패
+      console.error("주문 상태 업데이트 중 오류가 발생했습니다:", error);
+      return res
+        .status(500)
+        .json({ message: "주문 상태 업데이트 중 오류가 발생했습니다." });
+    }
+  },
+
   filter: async (req: Request, res: Response) => {
     const currentPage = parseInt(req.query.page as string) || 1;
     const postsPerPage = parseInt(req.query.post as string) || 10;
     const requestData = req.body?.filter ? req.body?.filter : req.body;
-    const orderState = req.body?.limit ? req.body?.limit?.orderState : null;
+    const flag = req.body?.limit ? req.body?.limit?.flag : null;
     console.log(requestData);
-    console.log(orderState);
+    console.log(flag);
     const newFilter = {
       selectFilter: requestData.selectFilter || "",
       filterValue: requestData.filterValue || "",
@@ -656,7 +695,7 @@ const orderController = {
       newFilter,
       currentPage,
       postsPerPage,
-      orderState,
+      flag,
       (
         err: { message: any },
         data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null
