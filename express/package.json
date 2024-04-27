@@ -22,8 +22,10 @@
     "concurrently": "^8.2.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "interfax": "^0.8.4",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
@@ -31,7 +33,9 @@
     "nodemon": "^3.0.3",
     "promise": "^8.3.0",
     "shortid": "^2.2.16",
-    "uuid": "^9.0.1"
+    "soap": "^1.0.0",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.6",

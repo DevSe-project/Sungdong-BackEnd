@@ -19,6 +19,22 @@ const deliveryController = {
     })
   },
 
+  adminModule: async (req: Request, res: Response) => {
+    try {
+      // 데이터베이스에서 불러오기
+      Delivery.adminModule((err: { message: any; }, data: any | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 주문 상품 갱신이 완료 되었습니다.', success: true, data });
+        }
+      })
+    } catch (error) {
+      return res.status(403).json({ message: '인증이 만료되어 재 로그인이 필요합니다.' });
+    }
+  },
+
 
 
   // 배송상태 변경사항 적용
@@ -72,9 +88,9 @@ const deliveryController = {
   },
 
   // 삭제 작업
-  delete: async (req: Request, res: Response) => {
+  cancellation: async (req: Request, res: Response) => {
     const orderIds = req.params.ids.split(',').map(String);
-    Delivery.deleteByIds(orderIds, (err: { message: any; }) => {
+    Delivery.cancellationByIds(orderIds, (err: { message: any; }) => {
       // 클라이언트에서 보낸 JSON 데이터를 받음
       if (err)
         return res.status(500).send({ message: err.message || "데이터를 갱신하는 중 서버 오류가 발생했습니다." });
@@ -86,17 +102,22 @@ const deliveryController = {
 
   // 필터링
   filter: async (req: Request, res: Response) => {
-    const checkboxState = req.body.checkboxState; // 사용하기 쉽게 변수에 담기
-    const filteredStateKeys = checkboxState.length > 0 ? Object.keys(checkboxState).filter(key => checkboxState[key] === true) : Object.keys(checkboxState).map(item => {return item}); // 값이 true인 키만 추출
+    // 사용하기 쉽게 변수에 담기 
+    const checkboxState = req.body.checkboxState;
+    // 값이 true인 키만 추출
+    const trueKeys = Object.entries(checkboxState)
+      .filter(([key, value]) => value === true)
+      .map(([key, value]) => key);
+
     const currentPage = parseInt(req.query.page as string, 10) || 1; // 조회할 페이지 번호
     const itemsPerPage = parseInt(req.query.pagePosts as string, 10) || 10; // 조회할 페이지의 아이템 개수
     const newFilter = {
-      orderState: filteredStateKeys || "",
+      orderState: trueKeys || "",
       startDate: req.body.date.start || "",
       endDate: req.body.date.end || ""
     }
 
-    console.log(newFilter);
+    console.log(`model 전달 전 최종 newFilter: ${newFilter}`);
 
     Delivery.filteredData(newFilter, currentPage, itemsPerPage, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
       // 클라이언트에서 보낸 JSON 데이터를 받습니다.
@@ -104,7 +125,7 @@ const deliveryController = {
         return res.status(500).send({ message: err.message || "데이터를 갱신하는 중 서버 오류가 발생했습니다." });
       else {
         return res.status(200).json({ message: '필터링이 완료 되었습니다.', success: true, data });
-        
+
       }
     })
   }

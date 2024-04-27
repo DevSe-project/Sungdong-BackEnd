@@ -5,6 +5,7 @@ import multer, { Multer } from "multer";
 import path from "path";
 import jwt from 'jsonwebtoken'
 const jwtSecret = 'sung_dong'
+import xlsx from 'xlsx';
 
 const productController = {
   create: async (req: Request, res: Response) => {
@@ -77,6 +78,21 @@ const productController = {
     } catch(error){
       res.clearCookie('jwt_token', { secure: true, sameSite: 'none' });
       return res.status(403).json({ message: '인증이 만료되어 로그인이 필요합니다.' });
+    }
+  },
+  adminModule: async (req: Request, res: Response) => {
+    try {
+      // 데이터베이스에서 불러오기
+      Product.adminModule((err: { message: any; }, data: any | null) => {
+        // 클라이언트에서 보낸 JSON 데이터를 받음
+        if (err)
+          return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+        else {
+          return res.status(200).json({ message: '성공적으로 주문 상품 갱신이 완료 되었습니다.', success: true, data });
+        }
+      })
+    } catch (error) {
+      return res.status(403).json({ message: '인증이 만료되어 재 로그인이 필요합니다.' });
     }
   },
   edit: async (req: Request, res: Response) => {
@@ -238,7 +254,7 @@ const productController = {
     console.log('이미지 업로드 요청 받음');
     // 이미지 업로드를 위한 multer 설정
     const storage = multer.diskStorage({
-      destination: 'images/', // 이미지를 저장할 폴더
+      destination: 'images', // 이미지를 저장할 폴더
       filename: (req, file, cb) => {
         // 파일명 중복을 피하기 위해 고유한 파일명 생성
         cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
@@ -255,6 +271,43 @@ const productController = {
         const fileName = req.file.filename;
         console.log(imageUrl);
         return res.json({ imageUrl, fileName });
+      }
+    });
+  },
+  uploadExcel: async (req: Request, res: Response) => {
+    console.log('엑셀파일 업로드 요청 받음');
+    // 이미지 업로드를 위한 multer 설정
+    const storage = multer.diskStorage({
+      destination: 'excels', // 이미지를 저장할 폴더
+      filename: (req, file, cb) => {
+        // 파일명 중복을 피하기 위해 고유한 파일명 생성
+        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+      },
+    });
+
+    const upload: Multer = multer({ storage: storage });
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ error: '파일을 업로드하지 못했습니다.' });
+      }
+      if (req.file) {
+        const workbook = xlsx.readFile(req.file.path);
+        const sheetData: any[] = [];
+
+        // 모든 시트 이름을 순회하며 데이터 파싱
+        workbook.SheetNames.forEach((sheetName: any, index: any) => {
+            const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+            sheetData.push(data);
+        });
+        
+        Product.importExcel(sheetData, (err: { message: any; }, data: ResultSetHeader | RowDataPacket | RowDataPacket[] | null) => {
+          // 클라이언트에서 보낸 JSON 데이터를 받음
+          if (err)
+            return res.status(500).send({ message: err.message || "상품을 갱신하는 중 서버 오류가 발생했습니다." });
+          else {
+            return res.status(200).json({ message: '성공적으로 상품 등록이 완료 되었습니다.', success: true, data });
+          }
+        })
       }
     });
   }

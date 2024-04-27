@@ -13,6 +13,7 @@ class Delivery {
     const query = `
       SELECT 
         d.order_id, 
+        uc.cor_corName,
         o.orderState,
         d.delivery_selectedCor,
         d.delivery_num, 
@@ -23,14 +24,16 @@ class Delivery {
         p.product_price, 
         op.order_cnt,
         ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
-      FROM 
-        delivery d
-      JOIN 
-        \`order\` o ON d.order_id = o.order_id
-      JOIN 
-        order_product op ON o.order_id = op.order_id
-      JOIN 
-        product p ON op.product_id = p.product_id
+      FROM delivery d
+      JOIN \`order\` o 
+        ON d.order_id = o.order_id
+      JOIN order_product op 
+        ON o.order_id = op.order_id
+      JOIN product p 
+        ON op.product_id = p.product_id
+      JOIN users_corInfo uc
+        ON uc.users_id = o.users_id
+      WHERE o.orderState > 1 AND o.orderState < 5
       LIMIT ?, ?
       `;
 
@@ -47,6 +50,13 @@ class Delivery {
       JOIN 
         product p ON op.product_id = p.product_id
     `;
+
+    const mysql = require('mysql');
+    const fullQuery = mysql.format(query, [offset, limit]);
+    console.log(`
+      fullQuery
+      ${fullQuery}
+    `);
 
     this.connection.query(countQuery, (err, countResult: any) => {
       if (err) {
@@ -105,34 +115,76 @@ class Delivery {
     }
   }
 
-  static deleteByIds(orderIds: string[], result: (error: any, response: any) => void) {
-    const deliveryQuery = "DELETE FROM delivery WHERE order_id IN (?)";
-    const orderQuery = "DELETE FROM \`order\` WHERE order_id IN (?)";
+  static cancellationByIds(orderIds: string[], result: (error: any, response: any) => void) {
+    // const deliveryQuery = `UPDATE delivery SET orderState = 6
+    //                       WHERE order_id IN (?)`;
+    const orderQuery = `UPDATE \`order\` SET orderState = 6
+                          WHERE order_id IN (?)`;
 
-    console.log("Delivery Query:", deliveryQuery);
+    // console.log("Delivery Query:", deliveryQuery);
     console.log("Order Query:", orderQuery);
     console.log("Order IDs:", orderIds);
 
-    this.connection.query(deliveryQuery, [orderIds], (errDelivery, resDelivery) => {
-      if (errDelivery) {
-        console.log(`쿼리 실행 중 에러 발생 (delivery 테이블):`, errDelivery);
-        result(errDelivery, null);
+    this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
+      if (errOrder) {
+        console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
+        result(errOrder, null);
         this.connection.releaseConnection;
       } else {
-        console.log('delivery 테이블에서 성공적으로 삭제 완료:', resDelivery);
-        this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
-          if (errOrder) {
-            console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
-            result(errOrder, null);
-            this.connection.releaseConnection;
-          } else {
-            console.log('order 테이블에서 성공적으로 삭제 완료:', resOrder);
-            result(null, { delivery: resDelivery, order: resOrder });
-            this.connection.releaseConnection;
-          }
-        });
+        console.log('order 테이블에서 취소상태로 업데이트 완료:', resOrder);
+        result(null, { order: resOrder });
+        this.connection.releaseConnection;
       }
     });
+
+    // this.connection.query(deliveryQuery, [orderIds], (errDelivery, resDelivery) => {
+    //   if (errDelivery) {
+    //     console.log(`쿼리 실행 중 에러 발생 (delivery 테이블):`, errDelivery);
+    //     result(errDelivery, null);
+    //     this.connection.releaseConnection;
+    //   } else {
+    //     console.log('delivery 테이블에서 성공적으로 삭제 완료:', resDelivery);
+    //     this.connection.query(orderQuery, [orderIds], (errOrder, resOrder) => {
+    //       if (errOrder) {
+    //         console.log(`쿼리 실행 중 에러 발생 (order 테이블):`, errOrder);
+    //         result(errOrder, null);
+    //         this.connection.releaseConnection;
+    //       } else {
+    //         console.log('order 테이블에서 취소상태로 업데이트 완료:', resOrder);
+    //         result(null, { delivery: resDelivery, order: resOrder });
+    //         this.connection.releaseConnection;
+    //       }
+    //     });
+    //   }
+    // });
+  }
+
+  //관리자페이지의 모듈 - 개수 불러오기
+  static adminModule(
+    result: (arg0: any, arg1: any) => void
+  ) {
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 2) AS prepare,
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 3) AS shipping,
+      (SELECT COUNT(*) FROM \`order\` WHERE order.orderState = 4) AS complete`;
+    this.connection.query(
+      query,
+      (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log(err);
+          result(err, null);
+          this.connection.releaseConnection;
+          return;
+        } else {
+          console.log("상품이 갱신되었습니다: ", res);
+          result(null, res);
+          this.connection.releaseConnection;
+          return;
+        }
+      }
+    );
   }
 
 
@@ -143,38 +195,41 @@ class Delivery {
    * @param result 
    */
   static filteredData(newFilter: any, currentPage: number, itemsPerPage: number, result: (error: any, data: any) => void) {
-    const offset = (currentPage - 1) * itemsPerPage; 
+    const offset = (currentPage - 1) * itemsPerPage;
     const limit = itemsPerPage;
 
     // 조인 쿼리
     let joinedQuery = `
-    SELECT 
-      d.order_id, 
-      o.orderState,
-      d.delivery_selectedCor,
-      d.delivery_num, 
-      DATE_FORMAT(o.order_date, '%Y-%m-%d') as order_date, 
-      op.product_id, 
-      p.product_title,
-      op.selectedOption, 
-      p.product_price, 
-      op.order_cnt,
-      ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
-    FROM 
-      delivery d
-    JOIN 
-      \`order\` o ON d.order_id = o.order_id
-    JOIN 
-      order_product op ON o.order_id = op.order_id
-    JOIN 
-      product p ON op.product_id = p.product_id
-    WHERE 1=1`; // : always true condition
+      SELECT 
+        d.order_id, 
+        o.orderState,
+        d.delivery_selectedCor,
+        d.delivery_num, 
+        DATE_FORMAT(o.order_date, '%Y-%m-%d') as order_date, 
+        op.product_id, 
+        p.product_title,
+        op.selectedOption, 
+        p.product_price, 
+        op.order_cnt,
+        ROUND((p.product_price * (1 - (p.product_discount * 0.01)))) as discountPrice 
+      FROM 
+       delivery d
+      JOIN 
+        \`order\` o ON d.order_id = o.order_id
+      JOIN 
+        order_product op ON o.order_id = op.order_id
+      JOIN 
+        product p ON op.product_id = p.product_id
+      WHERE 1=1
+    `; // : always true condition
 
+    const stateCondition = newFilter.orderState && newFilter.orderState != '';
+    const dateCondition = newFilter.startDate && newFilter.startDate != '' && newFilter.endDate && newFilter.endDate != '';
     /** 배송 상태 필터링 쿼리 */
-    const stateFitlerQuery = newFilter.orderState ? `AND orderState IN (?)` : ``;
+    const stateFitlerQuery = stateCondition ? `AND orderState IN (?)` : ``;
 
     /** 날짜 필터링 쿼리 */
-    const dateFilterQuery = newFilter.startDate && newFilter.endDate ? `AND o.order_date BETWEEN DATE_FORMAT(?, "%Y-%m-%d") AND DATE_FORMAT(?, "%Y-%m-%d")` : ``;
+    const dateFilterQuery = dateCondition ? `AND o.order_date BETWEEN DATE_FORMAT(?, "%Y-%m-%d") AND DATE_FORMAT(?, "%Y-%m-%d")` : ``;
 
     /** ORDER BY: 정렬 */
     const orderBy = `ORDER BY o.order_date DESC, o.orderState DESC`;
@@ -183,14 +238,23 @@ class Delivery {
     const paging = `LIMIT ${offset}, ${limit}`;
 
     /** 완성 쿼리 */
-    const query = `${joinedQuery} ${stateFitlerQuery} ${dateFilterQuery} ${orderBy} ${paging}`
+    const query = `
+      ${joinedQuery} 
+      ${stateFitlerQuery} 
+      ${dateFilterQuery} 
+      ${orderBy} 
+      ${paging}
+    `
 
     /** 쿼리 파라미터 */
-    const queryParams = [
-      newFilter.orderState ? newFilter.orderState : null,
-      newFilter.startDate ? newFilter.startDate : null,
-      newFilter.endDate ? newFilter.endDate : null
-    ]
+    const queryParams: any = [];
+    if (stateCondition)
+      queryParams.push(newFilter.orderState);
+    if (dateCondition) {
+      queryParams.push(newFilter.startDate);
+      queryParams.push(newFilter.endDate);
+    }
+
     console.log(`쿼리 파라미터: ${queryParams}`);
 
     const mysql = require('mysql');
@@ -224,7 +288,7 @@ class Delivery {
       }
       const totalRows = countResult[0].totalRows;
 
-      this.connection.query(query, queryParams, (err: QueryError | null, res: RowDataPacket[]) => {
+      this.connection.query(query, queryParams, (err: QueryError | Error | null, res: RowDataPacket[]) => {
         if (err) {
           console.log("에러 발생: ", err);
           result(err, null);
@@ -238,7 +302,7 @@ class Delivery {
             currentPage: currentPage,
             totalPages: totalPages,
           }
-          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
+          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다                                                                                                   .
           console.log("상품이 갱신되었습니다: ", responseData);
           result(null, responseData);
           this.connection.releaseConnection;

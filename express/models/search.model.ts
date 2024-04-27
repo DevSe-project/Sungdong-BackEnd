@@ -47,7 +47,7 @@ class Search {
       FROM product AS p 
       JOIN product_option AS po 
         ON p.product_id = po.product_id`;
-      const conditionColumns = ["p.product_id", "p.product_title", "p.product_brand", "p.product_spec", "p.product_model"];
+      const conditionColumns = ["REPLACE(p.product_id, '-', '')", "p.product_title", "p.product_brand", "REPLACE(p.product_spec, '*', '')", "REPLACE(p.product_model, '-', '')"];
       const conditionSingle = `WHERE (${conditionColumns.map(column => `${column} LIKE ?`).join(" OR ")})`;
       const conditionObject = `AND (${conditionColumns.map(column => `${column} LIKE ?`).join(" AND ")})`;
       const conditionFindParentsCategory = `AND p.parentsCategory_id = ?`
@@ -122,7 +122,7 @@ class Search {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
 
-    const whereClause = newFilter.searchFilter && newFilter.search ? `WHERE ${newFilter.searchFilter} LIKE ?` : '';
+    const whereClause = newFilter.searchFilter && newFilter.search ? `WHERE ${newFilter.searchFilter === "p.product_id" ? `REPLACE(p.product_id, '-', '')` : newFilter.searchFilter} LIKE ?` : '';
 
     const baseQuery = `
     SELECT 
@@ -149,6 +149,8 @@ class Search {
           order_product AS op ON o.order_id = op.order_id 
         JOIN 
           product AS p ON op.product_id = p.product_id
+        JOIN 
+          delivery AS d ON d.order_id = o.order_id
         JOIN 
           users_corInfo AS uc ON uc.users_id = o.users_id
         ${whereClause} -- 서브쿼리 내부에서 조건 적용.  
@@ -178,7 +180,9 @@ class Search {
         JOIN 
           product AS p ON op.product_id = p.product_id
         JOIN 
-          users_corInfo AS uc ON uc.users_id = o.users_id
+          users_corInfo AS uc ON uc.users_id = o.users_id        
+        JOIN 
+          delivery AS d ON d.order_id = o.order_id
         ${whereClause} -- 서브쿼리 내부에서 조건 적용.  
         GROUP BY 
           o.order_id

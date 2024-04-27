@@ -234,6 +234,34 @@ class Product {
     });
 }
 
+  //관리자페이지의 모듈 - 개수 불러오기
+  static adminModule(
+    result: (arg0: any, arg1: any) => void
+  ) {
+    // 주문 정보와 상품 정보를 조합하여 가져오는 쿼리
+    const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM product WHERE product_state = '판매준비') AS prepare,
+      (SELECT COUNT(*) FROM product WHERE product_state = '판매중') AS selling,
+      (SELECT COUNT(*) FROM product WHERE product_state = '품절') AS soldout`;
+      connection.query(
+        query,
+        (err: QueryError | null, res: RowDataPacket[]) => {
+          if (err) {
+            console.log(err);
+            result(err, null);
+            connection.releaseConnection;
+            return;
+          } else {
+            console.log("상품이 갱신되었습니다: ", res);
+            result(null, res);
+            connection.releaseConnection;
+            return;
+          }
+        }
+      );
+    }
+
 
   static edit(newProduct: any, result: (error: any, response: any) => void) {
     performTransaction((connection: PoolConnection) => {
@@ -372,6 +400,63 @@ class Product {
       }
       executeQuery(0);
     })
+  }
+  //엑셀 업로딩
+  static importExcel(sheetData: any[][], result: (error: any, response: any) => void) {
+    performTransaction((connection: PoolConnection) => {
+        const queries = [
+            "INSERT INTO product SET ?",      // 첫 번째 시트의 쿼리
+            "INSERT INTO product_option SET ?", // 두 번째 시트의 쿼리
+        ];
+
+        const results: (OkPacket | RowDataPacket[] | ResultSetHeader[] | RowDataPacket[][] | OkPacket[] | ProcedureCallPacket)[] = [];
+
+        function executeSheetQuery(sheetIndex: number) {
+            if (sheetIndex < sheetData.length) {
+                const currentSheetData = sheetData[sheetIndex];
+                let queryCounter = 0; // 현재 시트의 데이터를 처리하는 카운터
+
+                function executeQuery() {
+                    if (queryCounter < currentSheetData.length) {
+                        connection.query(queries[sheetIndex], currentSheetData[queryCounter], (err, res) => {
+                            if (err) {
+                                console.log(`쿼리 실행 중 에러 발생 (시트 ${sheetIndex}, 인덱스 ${queryCounter}): `, err);
+                                connection.rollback(() => {
+                                    result(err, null);
+                                    connection.release();
+                                });
+                            } else {
+                                results.push(res);
+                                queryCounter++;
+                                executeQuery(); // 다음 행 처리
+                            }
+                        });
+                    } else {
+                        executeSheetQuery(sheetIndex + 1); // 현재 시트의 모든 데이터 처리 후 다음 시트 처리
+                    }
+                }
+
+                executeQuery();
+            } else {
+                // 모든 시트 처리 완료 후 커밋
+                connection.commit((commitErr) => {
+                    if (commitErr) {
+                        console.log('커밋 중 에러 발생: ', commitErr);
+                        connection.rollback(() => {
+                            result(commitErr, null);
+                            connection.release();
+                        });
+                    } else {
+                        console.log('트랜잭션 성공적으로 완료: ', results);
+                        result(null, results);
+                        connection.release();
+                    }
+                });
+            }
+        }
+
+        executeSheetQuery(0); // 첫 번째 시트부터 처리 시작
+    });
   }
 }
 
