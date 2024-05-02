@@ -751,8 +751,21 @@ class Order {
       throw new Error(`Failed to update delivery state: ${error.message}`);
     }
   }
+  
 
-  static filter(newFilter: any, currentPage: number, postsPerPage: number, orderState:number, result: (arg0: any, arg1: any) => void) {
+  static async paidOrder(order_id: string) {
+    try {
+      const rows = connection.execute(
+        'UPDATE \`order\` SET order.orderState = 1  WHERE order.order_id = ?',
+        [order_id]
+      );
+      connection.releaseConnection;
+      return rows;
+    } catch (error: any) {
+      throw new Error(`Failed to update delivery state: ${error.message}`);
+    }
+  }
+  static filter(newFilter: any, currentPage: number, postsPerPage: number, flag:number, result: (arg0: any, arg1: any) => void) {
     const offset = (currentPage - 1) * postsPerPage;
     const limit = postsPerPage;
 
@@ -792,9 +805,9 @@ class Order {
     const countBaseQuery = "SELECT COUNT(*) as totalRows FROM \`order\` AS o JOIN delivery AS d ON o.order_id = d.order_id";
 
     const condition = `WHERE 
-    ${orderState === 1 ? newFilter.orderState !== '' ? `(o.orderState = ${newFilter.orderState})` : 'o.orderState IN (0,5,6)' : 'o.orderState = 1'}`
-    const conditionNotOrderState = `${orderState !== 1 ? 'AND' : ''}`
-    const conditionNotOrderState1 = `${orderState !== 1 ? '(o.isCancel = \'0\' OR o.isCancel IS NULL)' : ''}`
+    ${newFilter.orderState !== '' ? `(o.orderState = ${newFilter.orderState})` : flag !== 1 ? 'o.orderState IN (0,1)' : 'o.orderState IN (5,6)'}`
+    const conditionNotOrderState = `${flag !== 1 ? 'AND' : ''}`
+    const conditionNotOrderState1 = `${flag !== 1 ? '(o.isCancel = \'0\' OR o.isCancel IS NULL)' : ''}`
     const conditionDelType = newFilter.deliveryType ? `AND d.deliveryType = '${newFilter.deliveryType}'` : '';
     const conditionFilter = newFilter.selectFilter && newFilter.filterValue ? `AND ${newFilter.selectFilter} LIKE ?` : '';
     const dateCondition = newFilter.dateStart !== '' && newFilter.dateEnd !== '' ?

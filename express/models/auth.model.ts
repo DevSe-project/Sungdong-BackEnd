@@ -684,27 +684,27 @@ class User {
         {
           query: `UPDATE users_address SET zonecode = ?, roadAddress = ?, bname = ?, buildingName = ?, jibunAddress = ?, addressDetail = ? WHERE address_id = ?`,
           params: [user.zonecode, user.roadAddress, user.bname, user.buildingName, user.jibunAddress, user.addressDetail, user.address_id],
-          errorMsg: '고객 주소 정보 업데이트'
+          errorMsg: '고객 주소 정보 업데이트 실패'
         },
         {
           query: `UPDATE users_info SET email = ?, emailService = ?, name = ?, tel = ?, smsService = ?, hasCMS = ?, isBanned = ?, managers_id = ? WHERE users_info_id = ?`,
           params: [user.email, user.emailService, user.name, user.tel, user.smsService, user.hasCMS, user.isBanned, null, user.users_info_id], // managers_id는 나중에 채워질 것임
-          errorMsg: '고객 정보 업데이트'
+          errorMsg: '고객 정보 업데이트 실패'
         },
         {
           query: `UPDATE users_corInfo SET cor_ceoName = ?, cor_corName = ?, cor_sector = ?, cor_category = ?, cor_num = ?, cor_fax = ?, cor_tel = ? WHERE users_id = ?`,
           params: [user.cor_ceoName, user.cor_corName, user.cor_sector, user.cor_category, user.cor_num, user.cor_fax, user.cor_tel, user.users_id],
-          errorMsg: '회사정보 업데이트'
+          errorMsg: '회사정보 업데이트 실패'
         },
         {
           query: `UPDATE users SET userType_id = ?, userId = ?, userPassword = ? WHERE users_id = ?`,
           params: [user.userType_id, user.userId, user.userPassword, user.users_id],
-          errorMsg: '고객 메인 정보 업데이트'
+          errorMsg: '고객 메인 정보 업데이트 실패'
         }
       ];
 
       // 담당자 고유번호 조회 쿼리
-      const findManagersId = `SELECT managers_id FROM managers WHERE name = ${mysql.escape(user.managerName)}`;
+      const findManagersId = `SELECT managers_id FROM managers WHERE name = ${mysql.escape(user.managerName)}`; // 특수문자 등으로 에러가 날 수 있기 때문에 escape 처리
 
       // 담당자 고유번호 조회
       conn.query(findManagersId, (error: any, results: any) => {
@@ -719,9 +719,9 @@ class User {
         // 담당자 고유번호를 해당 params에 추가/삭제
         if (results && results.length > 0) {
           const managersId = results[0].managers_id;
-          queries[1].params[7] = managersId;
+          queries[1].params[7] = managersId; // users_info 테이블의 업데이트 query params에 managersId 추가
         } else {
-          queries[1].params[7] = null;
+          queries[1].params[7] = null; // 추가하지 않고 업데이트 실행
         }
 
         // 각 쿼리 실행
@@ -735,7 +735,10 @@ class User {
               return;
             }
             
-            // 사용자의 userType_id가 100이라면 insertManager 함수 호출
+            /* 
+            - 요청 유저타입 === 관리자 -> 매니저 테이블로 삽입
+              - 조건1: 기존 고객유형이 관리자 타입인데, 관리자 요청이 올 시, 취소처리
+            */  
             if (user.userType_id === 100) {
               insertManager(conn, user, () => { });
               // 마지막 쿼리까지 모두 성공적으로 실행되면 콜백 호출
@@ -756,13 +759,16 @@ class User {
      * @param callback 
      */
     function insertManager(conn: any, user: any, callback: () => void): void {
-      // 새로운 매니저 정보를 삽입할 때 사용할 데이터
-      const { userType_id, users_id, name } = user;
 
-      const query = `INSERT INTO managers (userType_id, users_id, name) VALUES (?, ?, ?)`
+      // 전달받은 userType_id가 100이라면 managers 테이블에 등록
+      const query = {
+        query: `INSERT INTO managers (usersId, userType_id, name) VALUES (?, ?, ?)`,
+        params: [user.usersId, user.userType_id, user.name],
+        errorMsg: '담당자 정보 업데이트 실패'
+      };
 
       // 데이터베이스 연결을 통해 쿼리 실행
-      conn.query(query, [userType_id, users_id, name], (err: any, result: any) => {
+      conn.query(query.query, query.params, (err: any, result: any) => {
         if (err) {
           // 에러 처리
           console.error("Error inserting manager:", err);
