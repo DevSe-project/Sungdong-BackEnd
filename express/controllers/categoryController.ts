@@ -6,21 +6,20 @@ const categoryController = {
   create: async (req: Request, res: Response) => {
     const categoryIds: { [key: string]: number } = {};
 
-  // 기존 카테고리 ID들을 확인하여 사용 가능한 첫 번째 ID를 반환합니다.
-  function getAvailableCategoryId(parentCategory: string | null): string {
-    const normalizedParentCategory = parentCategory || '';
-    let startCharCode = normalizedParentCategory.length === 0 ? 65 : 97; // A or a
-    let endCharCode = normalizedParentCategory.length === 0 ? 90 : 122; // Z or z
+function getAvailableCategoryId(parentCategory: string | null, allCategory: string[]): string {
+  const normalizedParentCategory = parentCategory || '';
+  const startCharCode = normalizedParentCategory.length === 0 ? 65 : 97; // A or a
+  const endCharCode = normalizedParentCategory.length === 0 ? 90 : 122; // Z or z
 
-    for (let i = startCharCode; i <= endCharCode; i++) {
-      let possibleId = normalizedParentCategory + String.fromCharCode(i);
-      if (!categoryIds[possibleId]) {
-        categoryIds[possibleId] = 1; // mark as used
-        return possibleId;
-      }
+  for (let i = startCharCode; i <= endCharCode; i++) {
+    const possibleId = normalizedParentCategory + String.fromCharCode(i);
+    if (!allCategory.includes(possibleId)) { 
+      return possibleId;
     }
-    return ""; // 모든 ID가 사용 중임
   }
+  throw new Error("모든 가능한 카테고리 ID가 사용 중입니다.");;
+}
+
 
     function getNextCategoryId(parentCategory: string | null, lastCategory: any): string {
       const normalizedParentCategory = parentCategory || '';
@@ -70,35 +69,56 @@ const categoryController = {
       return String.fromCharCode(64 + num);
     }
 
+    let lastCreatedCategoryId: string | null = null; // 이전에 생성된 마지막 카테고리를 저장할 변수
+
+    // 처음에는 데이터베이스에서 빈 곳을 찾아서 생성
+    async function createInitialCategoryId(parentsCategory: string | null) {
+      const allCategory = await Category.getAllCategoryId(parentsCategory);
+      let newCategoryId;
+      if(allCategory === null){
+        newCategoryId = generateCategoryId(parentsCategory);
+      } else {
+        newCategoryId = getAvailableCategoryId(parentsCategory, allCategory);
+      }
+      return newCategoryId;
+    }
+
+    // 새로운 카테고리를 생성하는 함수
+    async function createNewCategory(item: { parentsCategory_id: string | null; name: string }) {
+      const parentsCategory = item.parentsCategory_id;
+      
+      // 이전에 생성된 마지막 카테고리를 사용하여 새로운 카테고리 ID 생성
+      let newCategoryId;
+      if (lastCreatedCategoryId) {
+        newCategoryId = getNextCategoryId(parentsCategory, lastCreatedCategoryId);
+      } else {
+        newCategoryId = await createInitialCategoryId(parentsCategory);
+      }
+      
+      // 새로운 카테고리 데이터 생성
+      const newData = {
+        category_id: newCategoryId,
+        parentsCategory_id: item.parentsCategory_id,
+        name: item.name,
+      };
+
+      // 새로운 카테고리 생성
+      await Category.create(newData);
+
+      // 생성된 카테고리의 ID를 마지막으로 생성된 카테고리로 설정
+      lastCreatedCategoryId = newCategoryId;
+    }
+
 
     try {
-      const data = await Promise.all(req.body.map(async (item: { parentsCategory_id: string | null; name: string; category_id: string }) => {
-        const parentsCategory = req.body[0].parentsCategory_id;
-        const lastCategory = await Category.getlastestCategoryId(parentsCategory);
-        let newCategoryId;
-
-        if (lastCategory) {
-          newCategoryId = getNextCategoryId(parentsCategory, lastCategory);
-          if (newCategoryId === "카테고리 최대 생성 개수를 초과하였습니다.") {
-            newCategoryId = getAvailableCategoryId(parentsCategory);
-            if (newCategoryId === "") {
-              throw new Error("모든 가능한 카테고리 ID가 사용 중입니다.");
-            }
-          }
-        } else {
-          newCategoryId = generateCategoryId(parentsCategory);
-        }
-        return {
-          category_id: newCategoryId,
-          parentsCategory_id: item.parentsCategory_id,
-          name: item.name,
-        };
-      }))
-      await Category.create(data);
+      for (const item of req.body) {
+        await createNewCategory(item);
+      }
       res.status(200).json({ message: '성공적으로 생성이 완료되었습니다.', success: true });
     } catch (err) {
+      console.error(err);
       res.status(500).send({ message: "카테고리를 갱신하는 중 서버 오류가 발생했습니다." });
-    }
+    }    
   },
   list: async (req: Request, res: Response) => {
     // 데이터베이스에서 불러오기

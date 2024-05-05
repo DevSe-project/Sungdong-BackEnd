@@ -1,4 +1,4 @@
-import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, Pool } from 'mysql2';
+import { QueryError, RowDataPacket, ResultSetHeader, FieldPacket, Pool, PoolConnection } from 'mysql2';
 import db from '../db';
 
 // getConnection 함수로 connection 객체 얻기
@@ -7,27 +7,51 @@ const performTransaction = db.performTransaction;
 
 class Category {
   // category 튜플 추가
-  static create(newCategory: any): any {
-    const query = `INSERT INTO category SET ?`;
-    const results: any = [];
-    for (let i = 0; i < newCategory.length; i++) {
-      connection.query(query, newCategory[i], (err: QueryError | null, res: RowDataPacket[]) => {
-        if (err) {
-          console.log("에러 발생: ", err);
-          return err;
-        }
-        else {
-          results.push(res[0]);
-          // 마지막 쿼리까지 모두 실행되면 결과를 반환합니다.
-          if (results.length === newCategory.length) {
-            console.log("새 카테고리가 생성되었습니다: ", ...results);
-            connection.releaseConnection;
-            return results
-          }
-        }
+  static create(newCategory: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const query = `INSERT INTO category SET ?`;
+      const promises: Promise<any>[] = [];
+  
+      performTransaction((connection: PoolConnection) => {
+          const promise = new Promise((innerResolve, innerReject) => {
+            connection.query(query, newCategory, (err: QueryError | null, res: RowDataPacket[]) => {
+              if (err) {
+                console.log("에러 발생: ", err);
+                innerReject(err);
+              } else {
+                console.log("새 카테고리가 생성되었습니다: ", res[0]);
+                innerResolve(res[0]);
+              }
+            });
+          });
+          promises.push(promise);
+  
+        Promise.all(promises)
+          .then((results) => {
+            connection.commit((err: QueryError | null) => {
+              if (err) {
+                console.log("트랜잭션 커밋 에러: ", err);
+                reject(err);
+              } else {
+                resolve(results);
+              }
+              connection.release();
+            });
+          })
+          .catch((err) => {
+            connection.rollback(() => {
+              console.log("트랜잭션 롤백");
+              reject(err);
+              connection.release();
+            });
+          });
       });
-    }
+    });
   }
+  
+  
+  
+  
   static list(result: (arg0: any, arg1: any) => void) {
     const query = `SELECT * FROM category`;
     connection.query(query, (err: QueryError | null, res: RowDataPacket[]) => {
@@ -45,6 +69,7 @@ class Category {
       }
     });
   }
+
   static getByParentCategoryId(parentsCategory_id: string): Promise<any[] | null> {
     return new Promise<any[] | null>((resolve, reject) => {
       let query;
@@ -118,6 +143,40 @@ class Category {
       });
     });
   }
+
+  static async getAllCategoryId(parentCategory: string | null): Promise<string[] | null> {
+    return new Promise<string[] | null>((resolve, reject) => {
+      let query;
+      if (parentCategory == null) {
+        query = "SELECT category_id FROM category WHERE LENGTH(category_id) = 1 ORDER BY category_id DESC";
+      } else {
+        query = "SELECT category_id FROM category WHERE parentsCategory_id = ? ORDER BY category_id DESC";
+      }
+
+      connection.query(query, parentCategory, (err: QueryError | null, res: RowDataPacket[]) => {
+        if (err) {
+          console.log("에러 발생: ", err);
+          reject(err);
+        } else {
+          if (res.length > 0) {
+            let arr: string[] = [];
+            res.forEach((row) => {
+              arr.push(row.category_id);  // 각 카테고리 ID 출력
+            });
+          
+            console.log("해당 분류의 모든 카테고리: ", arr);
+            resolve(arr);
+          }
+          else {
+            console.log("해당 분류의 모든 카테고리: ", null);
+            resolve(null);
+          }
+        }
+        connection.releaseConnection;
+      });
+    });
+  }
+
   static deleteByIds(items: any[], result: (error: any, response: any) => void) {
     const deleteCategoryIds = items.map((item) => item.category_id);
 
