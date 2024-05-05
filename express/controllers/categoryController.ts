@@ -6,6 +6,22 @@ const categoryController = {
   create: async (req: Request, res: Response) => {
     const categoryIds: { [key: string]: number } = {};
 
+  // 기존 카테고리 ID들을 확인하여 사용 가능한 첫 번째 ID를 반환합니다.
+  function getAvailableCategoryId(parentCategory: string | null): string {
+    const normalizedParentCategory = parentCategory || '';
+    let startCharCode = normalizedParentCategory.length === 0 ? 65 : 97; // A or a
+    let endCharCode = normalizedParentCategory.length === 0 ? 90 : 122; // Z or z
+
+    for (let i = startCharCode; i <= endCharCode; i++) {
+      let possibleId = normalizedParentCategory + String.fromCharCode(i);
+      if (!categoryIds[possibleId]) {
+        categoryIds[possibleId] = 1; // mark as used
+        return possibleId;
+      }
+    }
+    return ""; // 모든 ID가 사용 중임
+  }
+
     function getNextCategoryId(parentCategory: string | null, lastCategory: any): string {
       const normalizedParentCategory = parentCategory || '';
       if (!categoryIds[normalizedParentCategory]) {
@@ -54,25 +70,29 @@ const categoryController = {
       return String.fromCharCode(64 + num);
     }
 
-    const parentsCategory = req.body[0].parentsCategory_id;
-    const lastCategory = await Category.getlastestCategoryId(parentsCategory);
+
     try {
       const data = await Promise.all(req.body.map(async (item: { parentsCategory_id: string | null; name: string; category_id: string }) => {
-        if (lastCategory !== null) {
-          const newCategoryId = getNextCategoryId(parentsCategory, lastCategory);
-          return {
-            category_id: newCategoryId,
-            parentsCategory_id: item.parentsCategory_id,
-            name: item.name,
+        const parentsCategory = req.body[0].parentsCategory_id;
+        const lastCategory = await Category.getlastestCategoryId(parentsCategory);
+        let newCategoryId;
+
+        if (lastCategory) {
+          newCategoryId = getNextCategoryId(parentsCategory, lastCategory);
+          if (newCategoryId === "카테고리 최대 생성 개수를 초과하였습니다.") {
+            newCategoryId = getAvailableCategoryId(parentsCategory);
+            if (newCategoryId === "") {
+              throw new Error("모든 가능한 카테고리 ID가 사용 중입니다.");
+            }
           }
         } else {
-          const newCategoryId = generateCategoryId(parentsCategory);
-          return {
-            category_id: newCategoryId,
-            parentsCategory_id: item.parentsCategory_id,
-            name: item.name,
-          };
+          newCategoryId = generateCategoryId(parentsCategory);
         }
+        return {
+          category_id: newCategoryId,
+          parentsCategory_id: item.parentsCategory_id,
+          name: item.name,
+        };
       }))
       await Category.create(data);
       res.status(200).json({ message: '성공적으로 생성이 완료되었습니다.', success: true });
