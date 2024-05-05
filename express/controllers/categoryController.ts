@@ -6,19 +6,26 @@ const categoryController = {
   create: async (req: Request, res: Response) => {
     const categoryIds: { [key: string]: number } = {};
 
-function getAvailableCategoryId(parentCategory: string | null, allCategory: string[]): string {
-  const normalizedParentCategory = parentCategory || '';
-  const startCharCode = normalizedParentCategory.length === 0 ? 65 : 97; // A or a
-  const endCharCode = normalizedParentCategory.length === 0 ? 90 : 122; // Z or z
+  function getAvailableCategoryId(parentCategory: string | null, allCategory: string[], checkCategory: string): string {
+    const normalizedParentCategory = parentCategory || '';
+    const startCharCode = normalizedParentCategory.length === 0 ? 65 : 97; // A or a
+    const endCharCode = normalizedParentCategory.length === 0 ? 90 : 122; // Z or z
+    let possibleId: string;
 
-  for (let i = startCharCode; i <= endCharCode; i++) {
-    const possibleId = normalizedParentCategory + String.fromCharCode(i);
-    if (!allCategory.includes(possibleId)) { 
-      return possibleId;
+    // 만약 checkCategory가 있고 allCategory 안에 포함되어 있지 않으면 checkCategory 반환함,
+    // 포함되어 있다면 새로운 카테고리 ID를 찾음
+    if (checkCategory && !allCategory.includes(checkCategory)) {
+      return checkCategory; 
+    } 
+
+    for (let i = startCharCode; i <= endCharCode; i++) {
+      possibleId = normalizedParentCategory + String.fromCharCode(i);
+      if (!allCategory.includes(possibleId)) { 
+        return possibleId;
+      }
     }
+    throw new Error("모든 가능한 카테고리 ID가 사용 중입니다.");;
   }
-  throw new Error("모든 가능한 카테고리 ID가 사용 중입니다.");;
-}
 
 
     function getNextCategoryId(parentCategory: string | null, lastCategory: any): string {
@@ -77,8 +84,11 @@ function getAvailableCategoryId(parentCategory: string | null, allCategory: stri
       let newCategoryId;
       if(allCategory === null){
         newCategoryId = generateCategoryId(parentsCategory);
+      } else if(lastCreatedCategoryId){
+          const tempCategoryId = getNextCategoryId(parentsCategory, lastCreatedCategoryId);
+          newCategoryId = getAvailableCategoryId(parentsCategory, allCategory, tempCategoryId);
       } else {
-        newCategoryId = getAvailableCategoryId(parentsCategory, allCategory);
+        newCategoryId = getAvailableCategoryId(parentsCategory, allCategory, "");
       }
       return newCategoryId;
     }
@@ -86,14 +96,9 @@ function getAvailableCategoryId(parentCategory: string | null, allCategory: stri
     // 새로운 카테고리를 생성하는 함수
     async function createNewCategory(item: { parentsCategory_id: string | null; name: string }) {
       const parentsCategory = item.parentsCategory_id;
-      
-      // 이전에 생성된 마지막 카테고리를 사용하여 새로운 카테고리 ID 생성
-      let newCategoryId;
-      if (lastCreatedCategoryId) {
-        newCategoryId = getNextCategoryId(parentsCategory, lastCreatedCategoryId);
-      } else {
-        newCategoryId = await createInitialCategoryId(parentsCategory);
-      }
+
+      // 새로운 카테고리를 생성함 ( 해당 함수에서 조건에 따라 분리하여 적용됨 )
+      const newCategoryId = await createInitialCategoryId(parentsCategory);
       
       // 새로운 카테고리 데이터 생성
       const newData = {
