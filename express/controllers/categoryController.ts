@@ -6,6 +6,28 @@ const categoryController = {
   create: async (req: Request, res: Response) => {
     const categoryIds: { [key: string]: number } = {};
 
+  function getAvailableCategoryId(parentCategory: string | null, allCategory: string[], checkCategory: string): string {
+    const normalizedParentCategory = parentCategory || '';
+    const startCharCode = normalizedParentCategory.length === 0 ? 65 : 97; // A or a
+    const endCharCode = normalizedParentCategory.length === 0 ? 90 : 122; // Z or z
+    let possibleId: string;
+
+    // 만약 checkCategory가 있고 allCategory 안에 포함되어 있지 않으면 checkCategory 반환함,
+    // 포함되어 있다면 새로운 카테고리 ID를 찾음
+    if (checkCategory && !allCategory.includes(checkCategory)) {
+      return checkCategory; 
+    } 
+
+    for (let i = startCharCode; i <= endCharCode; i++) {
+      possibleId = normalizedParentCategory + String.fromCharCode(i);
+      if (!allCategory.includes(possibleId)) { 
+        return possibleId;
+      }
+    }
+    throw new Error("모든 가능한 카테고리 ID가 사용 중입니다.");;
+  }
+
+
     function getNextCategoryId(parentCategory: string | null, lastCategory: any): string {
       const normalizedParentCategory = parentCategory || '';
       if (!categoryIds[normalizedParentCategory]) {
@@ -54,31 +76,54 @@ const categoryController = {
       return String.fromCharCode(64 + num);
     }
 
-    const parentsCategory = req.body[0].parentsCategory_id;
-    const lastCategory = await Category.getlastestCategoryId(parentsCategory);
+    let lastCreatedCategoryId: string | null = null; // 이전에 생성된 마지막 카테고리를 저장할 변수
+
+    // 처음에는 데이터베이스에서 빈 곳을 찾아서 생성
+    async function createInitialCategoryId(parentsCategory: string | null) {
+      const allCategory = await Category.getAllCategoryId(parentsCategory);
+      let newCategoryId;
+      if(allCategory === null){
+        newCategoryId = generateCategoryId(parentsCategory);
+      } else if(lastCreatedCategoryId){
+          const tempCategoryId = getNextCategoryId(parentsCategory, lastCreatedCategoryId);
+          newCategoryId = getAvailableCategoryId(parentsCategory, allCategory, tempCategoryId);
+      } else {
+        newCategoryId = getAvailableCategoryId(parentsCategory, allCategory, "");
+      }
+      return newCategoryId;
+    }
+
+    // 새로운 카테고리를 생성하는 함수
+    async function createNewCategory(item: { parentsCategory_id: string | null; name: string }) {
+      const parentsCategory = item.parentsCategory_id;
+
+      // 새로운 카테고리를 생성함 ( 해당 함수에서 조건에 따라 분리하여 적용됨 )
+      const newCategoryId = await createInitialCategoryId(parentsCategory);
+      
+      // 새로운 카테고리 데이터 생성
+      const newData = {
+        category_id: newCategoryId,
+        parentsCategory_id: item.parentsCategory_id,
+        name: item.name,
+      };
+
+      // 새로운 카테고리 생성
+      await Category.create(newData);
+
+      // 생성된 카테고리의 ID를 마지막으로 생성된 카테고리로 설정
+      lastCreatedCategoryId = newCategoryId;
+    }
+
+
     try {
-      const data = await Promise.all(req.body.map(async (item: { parentsCategory_id: string | null; name: string; category_id: string }) => {
-        if (lastCategory !== null) {
-          const newCategoryId = getNextCategoryId(parentsCategory, lastCategory);
-          return {
-            category_id: newCategoryId,
-            parentsCategory_id: item.parentsCategory_id,
-            name: item.name,
-          }
-        } else {
-          const newCategoryId = generateCategoryId(parentsCategory);
-          return {
-            category_id: newCategoryId,
-            parentsCategory_id: item.parentsCategory_id,
-            name: item.name,
-          };
-        }
-      }))
-      await Category.create(data);
+      for (const item of req.body) {
+        await createNewCategory(item);
+      }
       res.status(200).json({ message: '성공적으로 생성이 완료되었습니다.', success: true });
     } catch (err) {
+      console.error(err);
       res.status(500).send({ message: "카테고리를 갱신하는 중 서버 오류가 발생했습니다." });
-    }
+    }    
   },
   list: async (req: Request, res: Response) => {
     // 데이터베이스에서 불러오기
